@@ -2,9 +2,8 @@
 
 # Must run in elevated prompt to make link
 
-# Must first run the command before runningcd .. this script
+# Must first run the following command before running this script
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
-
 
 ## Copy and link from OneDrive
 # PowerShell history
