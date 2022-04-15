@@ -3,7 +3,10 @@
 # Install-Module -Name VirtualDesktop -Scope CurrentUser
 
 Switch-Desktop -Desktop 1
-Write-Output "starting presentation..." 
-Start-Process -WorkingDirectory "C:\Program Files (x86)\Microsoft Office\Office16" -FilePath .\POWERPNT.EXE -ArgumentList "/S `"blank.ppsx`"" 
+$office_dir = 'C:\Program Files (x86)\Microsoft Office\Office16'
+$ppt_dir = 'C:\Users\jlighthall\OneDrive\Desktop'
+$ppt_name = 'blank.ppsx'
+Write-Output "starting presentation $ppt_name..." 
+Start-Process -WorkingDirectory $office_dir -FilePath .\POWERPNT.EXE -ArgumentList "/S `"$ppt_dir\$ppt_name`"" 
 Start-Sleep -Milliseconds 2000
 Switch-Desktop -Desktop 0
