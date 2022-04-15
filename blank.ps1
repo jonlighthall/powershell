@@ -8,5 +8,5 @@ $ppt_dir = 'C:\Users\jlighthall\OneDrive\Desktop'
 $ppt_name = 'blank.ppsx'
 Write-Output "starting presentation $ppt_name..." 
 Start-Process -WorkingDirectory $office_dir -FilePath .\POWERPNT.EXE -ArgumentList "/S `"$ppt_dir\$ppt_name`"" 
-Start-Sleep -Milliseconds 2000
+Start-Sleep -Milliseconds 1000 # add wait to ensure ppt opens on other desktop
 Switch-Desktop -Desktop 0
