@@ -1,5 +1,7 @@
 # The following commands must be run  before running this script
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
+# Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
+# Install-Module PowerShellGet -AllowClobber -Force -Scope CurrentUser
 # Install-Module -Name VirtualDesktop -Scope CurrentUser
 
 Switch-Desktop -Desktop 1
