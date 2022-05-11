@@ -24,5 +24,5 @@ while (($check).CPU -lt 1.0) {
 }
 
 # switch back to primary desktop
-Start-Sleep -Milliseconds wait_ms
+Start-Sleep -Milliseconds $wait_ms
 Switch-Desktop -Desktop 0
