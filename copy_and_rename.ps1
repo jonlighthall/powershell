@@ -24,7 +24,4 @@ if (Test-Path -Path $source) {
    else {
     Write-Output "$source not found"
     Write-Output "no pictures to copy`nexiting"
-    }   	      
-	      
-
-	
+    }
