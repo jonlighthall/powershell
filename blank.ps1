@@ -1,8 +1,8 @@
 # The following commands must be run  before running this script
-# Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
+# Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
 # Install-PackageProvider -Name NuGet -Force -Scope CurrentUser
 # Install-Module PowerShellGet -AllowClobber -Force -Scope CurrentUser
-# Install-Module -Name VirtualDesktop -Scope CurrentUser
+# Install-Module -Name VirtualDesktop -Scope CurrentUser -Force
 
 $office_dir = 'C:\Program Files (x86)\Microsoft Office\Office16'
 Write-Host -NoNewline "$office_dir... "
@@ -48,7 +48,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     $StartTime = $(get-date)
     $check = Get-Process POWERPNT -ErrorAction SilentlyContinue
     $startCPU=($check).CPU[-1]
-    echo "starting CPU = $startCPU"
+    Write-Output "starting CPU = $startCPU"
     while ((($check).CPU[-1] -lt ($startCPU + 1.0))){
         Write-Output "still loading..." 
         Start-Sleep -Milliseconds $wait_ms
