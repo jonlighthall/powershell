@@ -49,7 +49,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     $check = Get-Process POWERPNT -ErrorAction SilentlyContinue
     $startCPU=($check).CPU[-1]
     Write-Output "starting CPU = $startCPU"
-    while ((($check).CPU[-1] -lt ($startCPU + 1.0))){
+    while ((($check).CPU[-1] -lt ($startCPU + 1.5))){
         Write-Output "still loading..." 
         Start-Sleep -Milliseconds $wait_ms
         Write-Output "  CPU = $(($check).CPU[-1])"
