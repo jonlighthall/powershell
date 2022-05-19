@@ -1,0 +1,1 @@
+echo "weclome to $env:COMPUTERNAME"
