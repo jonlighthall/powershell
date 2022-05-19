@@ -38,7 +38,7 @@ Write-Host -NoNewline "$ppt_dir\$ppt_name... "
 if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     Write-Output "found"
     Write-Output "starting presentation $ppt_name..." 
-    $wait_ms = 100
+    $wait_ms = 150
     Switch-Desktop -Desktop 1
 
     # open ppt
@@ -63,7 +63,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
 
     Write-Output "$ppt_name loaded" 
     Write-Output "goodbye" 
-    Start-Sleep 3
+    Timeout /T 5
 }
 else {    
     Write-Output "not found"
