@@ -124,8 +124,10 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     Write-Output "loaded, elapsed time  = $elapsedTime" 
 
     # switch back to primary desktop
+    Write-Host -NoNewline "waiting $wait_ms... "
     Start-Sleep -Milliseconds $wait_ms
     Switch-Desktop -Desktop 0
+    Write-Output "done"
     }
     
     $DebugPreference = 'SilentlyContinue'
