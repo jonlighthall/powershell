@@ -53,6 +53,9 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
         Write-Output "still loading..." 
         Start-Sleep -Milliseconds $wait_ms
         Write-Output "  CPU = $(($check).CPU[-1])"
+        $absdiffcpu=($check).CPU[-1]-$startCPU
+        $reldiffcpu=(($check).CPU[-1]/$startCPU)/100
+        Write-Output "  CPU change = $absdiffcpu or $reldiffcpu%"
         $elapsedTime = $(get-date) - $StartTime
         Write-Output "  elapsed time  = $elapsedTime" 
     } 
