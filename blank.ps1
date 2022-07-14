@@ -46,16 +46,17 @@ else {
 $ppt_name = 'blank.ppsx'
 Write-Host -NoNewline "$ppt_dir\$ppt_name... "
 if (Test-Path -Path  $ppt_dir\$ppt_name ) {
-    Write-Output "found"    
-    $DebugPreference = 'Continue'    
+    Write-Output "found"
+    # turn debugging messages on or off    
+    #$DebugPreference = 'Continue'    
     $ppt_pid2=$((Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"}).Id)    
     if ($ppt_pid2 -is [int]) {
         Write-Debug "ppt pid = $ppt_pid2 (int)"
     } else {
-        Write-Debug "ppt pid = not int"        
+        Write-Debug "ppt pid = not int : assume not open"        
     }    
     if ($null -eq $ppt_pid2) {
-        Write-Debug "ppt pid = null $ppt_pid2"
+        Write-Debug "ppt pid = null $ppt_pid2   : assume not open"
         Switch-Desktop -Desktop 1
         # open ppt
         Write-Output "starting presentation $ppt_name..."         
@@ -73,9 +74,8 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     Write-Host -NoNewline "  opening $ppt_name... "
     Write-Debug "" 
         while ($open -eq $false ) {
-            Write-Debug "still opening..." 
-            #Start-Sleep -Milliseconds $wait_ms             
-            $ppt_pid3=(Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_nanme*"})                            
+            Write-Debug "still opening..."             
+            $ppt_pid3=(Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"})                            
             if (($ppt_pid3).Id -is [int]) {
                 Write-Debug "  ppt pid = $(($ppt_pid3).Id)"
                 $open=$true
@@ -91,10 +91,11 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
         }
     Write-Output "opened, elapsed time  = $elapsedTime"     
     
+    Start-Process powershell {.\blank_status.ps1}
+
     Write-Host -NoNewline "  loading $ppt_name... "
     Write-Debug "" 
-    Write-Debug "open = $open" 
-    Write-Debug "finished = $finished" 
+    Write-Debug "open = $open"     
     $finished=$false
     Write-Debug "finished = $finished" 
 
@@ -105,16 +106,16 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
         Write-Debug "  CPU = $tempCPU"
         $absdiffcpu=$tempCPU-$startCPU
         $reldiffcpu=($tempCPU/$startCPU)/100        
-        Write-Debug "  CPU change = $absdiffcpu or $reldiffcpu%"                
+        Write-Debug "  CPU change = $absdiffcpu or $reldiffcpu%" 
         $dCPU=$tempCPU-$lastCPU
         Write-Debug "  dCPU = $dCPU" 
         $lastCPU=$tempCPU
-        Write-Debug  "  CPU change is "
+        Write-Debug "  CPU change is..."
         if (($absdiffcpu -gt $CPU_change) -and ($dCPU -lt 0.05)) {
-            Write-Debug "pass"      
+            Write-Debug "    pass"                 
             $finished=$true
         } else {
-            Write-Debug "fail"            
+            Write-Debug "    fail"            
                     }
         $elapsedTime = $(get-date) - $StartTime
         Write-Debug "  elapsed time  = $elapsedTime" 
