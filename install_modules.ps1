@@ -1,3 +1,4 @@
+$env:PSModulePath = "${HOME}\Documents\WindowsPowerShell\Modules;" + $env:PSModulePath
 # The following commands must be run before running blank.ps1
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force -Verbose
 #[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12

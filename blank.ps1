@@ -4,6 +4,8 @@
 # Install-Module PowerShellGet -AllowClobber -Force -Scope CurrentUser
 # Install-Module -Name VirtualDesktop -Scope CurrentUser -Force
 
+$env:PSModulePath = "${HOME}\Documents\WindowsPowerShell\Modules;" + $env:PSModulePath
+
 # settings
 $wait_ms = 512    
 $CPU_change = 1.2
