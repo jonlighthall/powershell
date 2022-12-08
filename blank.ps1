@@ -92,9 +92,30 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
             Write-Debug "  elapsed time  = $elapsedTime" 
         }
     Write-Output "opened, elapsed time  = $elapsedTime"     
-    
-    Start-Process powershell {.\blank_status.ps1}
 
+    # define file location
+$ps_dir = $("${HOME}\Documents\powershell")
+Write-Host -NoNewline "$ps_dir... "
+if (Test-Path -Path $ps_dir ) {
+    Write-Output "found"
+
+    $ps_name = 'blank_status.ps1'
+    Write-Host -NoNewline "$ps_dir\$ps_name... "    
+    if (Test-Path -Path  $ps_dir\$ps_name ) {
+        Write-Output "found"
+        #Start-Process -FilePath '$HOME\Documents\powershell\blank_status.ps1'; Read-Host
+        #Start-Process -FilePath "blank_status.ps1" -WorkingDirectory "$HOME\Documents\powershell\blank_status.ps1" -Verb Print
+    }
+    else {
+        Write-Output "not found"        
+        read-host "Press ENTER to continue..."
+    }
+}
+else {    
+    Write-Output "not found"
+    read-host "Press ENTER to continue..."
+    #exit 1
+}
     Write-Host -NoNewline "  loading $ppt_name... "
     Write-Debug "" 
     Write-Debug "open = $open"     
