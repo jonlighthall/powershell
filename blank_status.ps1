@@ -1,4 +1,5 @@
 # settings
+Write-Host "hello"
 $wait_ms = 512    
 $StartTime = $(get-date)
 $elapsedTime = $(get-date) - $StartTime
@@ -9,23 +10,46 @@ $proc_name=[io.path]::GetFileNameWithoutExtension($proc)
 
 # define file name
 $ppt_name = 'blank.ppsx'
-$ppt_pid3=(Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"})
-Write-Host "ppt pid = $ppt_pid3"
-$startCPU=($ppt_pid3).CPU[-1]
 
-while ($($elapsedTime.TotalSeconds) -lt 10) {        
-    $tempCPU=($ppt_pid3).CPU[-1]
-    Write-Host -NoNewline "  CPU = $tempCPU"
-    $absdiffcpu=$tempCPU-$startCPU
-    $reldiffcpu=($tempCPU/$startCPU)/100        
-    Write-Host -NoNewline "  CPU change = $absdiffcpu or $reldiffcpu%" 
-    $dCPU=$tempCPU-$lastCPU
-    Write-Host -NoNewline "  dCPU = $dCPU" 
-    $lastCPU=$tempCPU    
+while ($($elapsedTime.TotalSeconds) -lt 10) {  
     $elapsedTime = $(get-date) - $StartTime
     Write-Host "  elapsed time  = $($elapsedTime.TotalMilliseconds) ms"
-    Start-Sleep -Milliseconds $wait_ms    
-}
 
+    #get PID
+    $ppt_proc=$(Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"})
+    $ppt_pid3=$(($ppt_proc).Id)
+
+    # test PID
+    if ($ppt_pid3 -is [int]) {
+        Write-Host  "ppt PID = $ppt_pid3 (int)"    
+    } else {    
+        Write-Host  "$ppt_name PID = not int"        
+    }    
+
+    if ($null -eq $ppt_pid3) {    
+        Write-Host  "$ppt_name PID is null"
+        continue
+    } else {
+        Write-Host  "$ppt_name PID = " ($ppt_pid3)
+        <# Action when all if and elseif conditions are false #>
+        $startCPU=($ppt_proc).CPU[-1]
+        $dCPU=1
+        while ($dCPU -gt 0) {
+            $tempCPU=($ppt_proc).CPU[-1]
+            Write-Host -NoNewline "  CPU = $tempCPU"
+            $absdiffcpu=$tempCPU-$startCPU
+            $reldiffcpu=($tempCPU/$startCPU)/100        
+            Write-Host -NoNewline "  CPU change = $absdiffcpu or $reldiffcpu%" 
+            $dCPU=$tempCPU-$lastCPU
+            Write-Host -NoNewline "  dCPU = $dCPU" 
+            $lastCPU=$tempCPU                
+            $elapsedTime = $(get-date) - $StartTime
+            Write-Host "  elapsed time  = $($elapsedTime.TotalMilliseconds) ms"
+            Start-Sleep -Milliseconds $wait_ms       
+        }                
+        Write-Output "done"
+        break
+    }  
+}
 Write-Output "goodbye" 
-Timeout /T 5
+Timeout /T 5  
