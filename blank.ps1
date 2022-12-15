@@ -7,8 +7,12 @@
 $env:PSModulePath = "${HOME}\Documents\WindowsPowerShell\Modules;" + $env:PSModulePath
 
 # settings
-$wait_ms = 512
+$loop_wait_ms = 512
+$message_wait_ms = 1250
 $CPU_change = 1.2
+$dCPU_thresh = 0.05
+# turn debugging messages on or off
+#$DebugPreference = 'Continue'
 
 # define executable directory
 $office_dir = 'C:\Program Files (x86)\Microsoft Office\Office16'
@@ -30,6 +34,7 @@ If (Test-Path -Path $office_dir\$proc ) {
 }
 else {
     Write-Output "not found"
+    Start-Sleep -Milliseconds $message_wait_ms
     exit 1
 }
 
@@ -41,6 +46,7 @@ if (Test-Path -Path $ppt_dir ) {
 }
 else {
     Write-Output "not found"
+    Start-Sleep -Milliseconds $message_wait_ms
     exit 1
 }
 
@@ -49,8 +55,6 @@ $ppt_name = 'blank.ppsx'
 Write-Host -NoNewline "$ppt_dir\$ppt_name... "
 if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     Write-Output "found"
-    # turn debugging messages on or off
-    #$DebugPreference = 'Continue'
     # find PID
     $ppt_pid2=$((Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"}).Id)
     # test PID
@@ -107,7 +111,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
                 if (($ppt_pid3).Id -is [int]) {
                     Write-Debug "  ppt pid = $(($ppt_pid3).Id)"
                     $open=$true
-                    Start-Sleep -Milliseconds $wait_ms
+                    Start-Sleep -Milliseconds $loop_wait_ms
                     $startCPU=($ppt_pid3).CPU[-1]
                     Write-Debug "  starting CPU = $startCPU"
                     $lastCPU=$startCPU
@@ -127,7 +131,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
 
         while (($finished -eq $false ) -and ($($elapsedTime.TotalSeconds) -lt 10)) {
             Write-Debug "still loading..."
-            Start-Sleep -Milliseconds $wait_ms
+            Start-Sleep -Milliseconds $loop_wait_ms
             $tempCPU=($ppt_pid3).CPU[-1]
             Write-Debug "  CPU = $tempCPU"
             $absdiffcpu=$tempCPU-$startCPU
@@ -135,9 +139,17 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
             Write-Debug "  CPU change = $absdiffcpu or $reldiffcpu%"
             $dCPU=$tempCPU-$lastCPU
             Write-Debug "  dCPU = $dCPU"
+            if ($dCPU -lt $dCPU_thresh) {
+                Write-Host "  dCPU < " $dCPU_thresh
+                break
+            }
+            else {
+                Write-Host "  dCPU > " $dCPU_thresh
+            }
+
             $lastCPU=$tempCPU
             Write-Debug "  CPU change is..."
-            if (($absdiffcpu -gt $CPU_change) -and ($dCPU -lt 0.05)) {
+            if (($absdiffcpu -gt $CPU_change) -and ($dCPU -lt $dCPU_thresh)) {
                 Write-Debug "    pass"
                 $finished=$true
             } else {
@@ -151,17 +163,19 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
         Write-Output "loaded, elapsed time  = $elapsedTime"
 
         # switch back to primary desktop
-        Write-Host -NoNewline "waiting $wait_ms... "
-        Start-Sleep -Milliseconds $wait_ms
-        Switch-Desktop -Desktop 0
+        Write-Host -NoNewline "waiting $loop_wait_ms... "
+        Start-Sleep -Milliseconds $loop_wait_ms
         Write-Output "done"
+        Switch-Desktop -Desktop 0
     }
 
     $DebugPreference = 'SilentlyContinue'
     Write-Output "goodbye"
-    Timeout /T 5
+    Start-Sleep -Milliseconds $message_wait_ms
+    
 }
 else {
     Write-Output "not found"
+    Start-Sleep -Milliseconds $message_wait_ms
     exit 1
 }

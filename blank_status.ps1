@@ -1,5 +1,6 @@
 # settings
-$wait_ms = 512
+$loop_wait_ms = 512
+$message_wait_ms = 1250
 $StartTime = $(get-date)
 $elapsedTime = $(get-date) - $StartTime
 
@@ -37,12 +38,15 @@ while ($($elapsedTime.TotalSeconds) -lt 10) {
             $lastCPU=$tempCPU
             $elapsedTime = $(get-date) - $StartTime
             Write-Host "  elapsed time  = $($elapsedTime.TotalMilliseconds) ms"
-            Start-Sleep -Milliseconds $wait_ms
+            Start-Sleep -Milliseconds $loop_wait_ms
         }
         Write-Output "done"
+        Start-Sleep -Milliseconds $message_wait_ms
         break
     }
 }
 
 Write-Output "goodbye"
-Timeout /T 5
+Start-Sleep -Milliseconds $message_wait_ms
+# switch back to primary desktop
+Switch-Desktop -Desktop 0
