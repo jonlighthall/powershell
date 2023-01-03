@@ -1,4 +1,5 @@
 # settings
+$udpate_wait_ms = 256
 $loop_wait_ms = 512
 $message_wait_ms = 1250
 $StartTime = $(get-date)
@@ -10,10 +11,13 @@ $proc_name=[io.path]::GetFileNameWithoutExtension($proc)
 
 # define file name
 $ppt_name = 'blank.ppsx'
-
-while ($($elapsedTime.TotalSeconds) -lt 10) {
+$lastTime = $elapsedTime    
+Write-Host "opening $ppt_name..."        
+while ($($elapsedTime.TotalSeconds) -lt 10) {    
     $elapsedTime = $(get-date) - $StartTime
-    Write-Host "  elapsed time  = $($elapsedTime.TotalMilliseconds) ms"
+    if (($elapsedTime-$lastTime).TotalMilliseconds -gt $udpate_wait_ms) {
+        Write-Host "  elapsed time  = $($elapsedTime.TotalMilliseconds) ms"
+    }
 
     #get PID
     $ppt_proc=$(Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"})
@@ -21,7 +25,10 @@ while ($($elapsedTime.TotalSeconds) -lt 10) {
 
     # test PID
     if ($null -eq $ppt_pid3) {
-        Write-Host  "$ppt_name PID is null"
+        if (($elapsedTime-$lastTime).TotalMilliseconds -gt $udpate_wait_ms) {
+            Write-Host  "  $ppt_name PID is null"
+            $lastTime = $elapsedTime    
+        }
         continue
     } else {
         Write-Host  "$ppt_name PID = " ($ppt_pid3)
