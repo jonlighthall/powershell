@@ -166,7 +166,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
         Write-Host -NoNewline "waiting $loop_wait_ms... "
         Start-Sleep -Milliseconds $loop_wait_ms
         Write-Output "done"
-        Switch-Desktop -Desktop 0
+        #Switch-Desktop -Desktop 0
     }
 
     $DebugPreference = 'SilentlyContinue'
