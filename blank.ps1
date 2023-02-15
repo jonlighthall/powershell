@@ -84,7 +84,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
             # test file
             if (Test-Path -Path  $ps_dir\$ps_name ) {
                 Write-Output "found"
-                Start-Process -WorkingDirectory "${ps_dir}" powershell -ArgumentList {./blank_status.ps1}
+                Start-Process -WorkingDirectory "${ps_dir}" powershell -ArgumentList {./$ps_nam}
             }
             else {
                 Write-Output "not found"
