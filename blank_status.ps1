@@ -1,7 +1,9 @@
 # settings
-$udpate_wait_ms = 256
+$update_wait_ms = 256
 $loop_wait_ms = 512
 $message_wait_ms = 1500
+
+# define time
 $StartTime = $(get-date)
 $elapsedTime = $(get-date) - $StartTime
 
@@ -13,10 +15,10 @@ $proc_name=[io.path]::GetFileNameWithoutExtension($proc)
 $ppt_name = 'blank.ppsx'
 $lastTime = $elapsedTime
 Write-Host "opening $ppt_name..."
-while ($($elapsedTime.TotalSeconds) -lt 10) {
+while ($($elapsedTime.TotalSeconds) -lt 32) {
     $elapsedTime = $(get-date) - $StartTime
-    if (($elapsedTime-$lastTime).TotalMilliseconds -gt $udpate_wait_ms) {
-        Write-Host "  elapsed time  = $($elapsedTime.TotalMilliseconds) ms"
+    if (($elapsedTime-$lastTime).TotalMilliseconds -gt $update_wait_ms) {
+        Write-Host "  elapsed time  = $("{0,8:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"
     }
 
     #get PID
@@ -25,8 +27,8 @@ while ($($elapsedTime.TotalSeconds) -lt 10) {
 
     # test PID
     if ($null -eq $ppt_pid3) {
-        if (($elapsedTime-$lastTime).TotalMilliseconds -gt $udpate_wait_ms) {
-            Write-Host  "  $ppt_name PID is null"
+        if (($elapsedTime-$lastTime).TotalMilliseconds -gt $update_wait_ms) {
+            Write-Host  -NoNewline "  $ppt_name PID is null"
             $lastTime = $elapsedTime
         }
         continue
@@ -36,15 +38,15 @@ while ($($elapsedTime.TotalSeconds) -lt 10) {
         $dCPU=1
         while ($dCPU -gt 0) {
             $tempCPU=($ppt_proc).CPU[-1]
-            Write-Host -NoNewline "  CPU = $tempCPU"
-            $absdiffcpu=$tempCPU-$startCPU
-            $reldiffcpu=($tempCPU/$startCPU)/100
-            Write-Host -NoNewline "  CPU change = $absdiffcpu or $reldiffcpu%"
+            Write-Host -NoNewline "  CPU = $("{0:n2}" -f $tempCPU)"
+            $absdiffcpu=$tempCPU-$startCPU            
+            $reldiffcpu=($absdiffcpu/$startCPU)
+            Write-Host -NoNewline "  CPU change = $("{0:n2}" -f $absdiffcpu) or $("{0,5:p1}" -f $reldiffcpu)"
             $dCPU=$tempCPU-$lastCPU
-            Write-Host -NoNewline "  dCPU = $dCPU"
+            Write-Host -NoNewline "  dCPU = $("{0:n2}" -f $dCPU)"
             $lastCPU=$tempCPU
             $elapsedTime = $(get-date) - $StartTime
-            Write-Host "  elapsed time  = $($elapsedTime.TotalMilliseconds) ms"
+            Write-Host "  elapsed time  = $("{0,8:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"
             Start-Sleep -Milliseconds $loop_wait_ms
         }
         Write-Output "done"
@@ -52,7 +54,10 @@ while ($($elapsedTime.TotalSeconds) -lt 10) {
         break
     }
 }
-
+if ($null -eq $ppt_pid3) {
+    Write-Output "timeout"
+    Start-Sleep -Milliseconds $message_wait_ms
+}
 Write-Output "goodbye"
 Start-Sleep -Milliseconds $message_wait_ms
 # switch back to primary desktop
