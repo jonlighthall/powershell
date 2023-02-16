@@ -14,6 +14,10 @@ $dCPU_thresh = 0.05
 # turn debugging messages on or off
 #$DebugPreference = 'Continue'
 
+# define time
+$StartTime = $(get-date)
+$elapsedTime = $(get-date) - $StartTime
+
 # define executable directory
 $office_dir = 'C:\Program Files (x86)\Microsoft Office\Office16'
 Write-Host -NoNewline "$office_dir... "
@@ -55,7 +59,7 @@ $ppt_name = 'blank.ppsx'
 Write-Host -NoNewline "$ppt_dir\$ppt_name... "
 if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     Write-Output "found"
-    # find PID
+    # get PID
     $ppt_pid2=$((Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"}).Id)
     # test PID
     if ($ppt_pid2 -is [int]) {
@@ -69,7 +73,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
         # open ppt
         Write-Output "starting presentation $ppt_name..."
         Start-Process -WorkingDirectory $office_dir -FilePath .\$proc -ArgumentList "/S `"$ppt_dir\$ppt_name`""
-        $StartTime = $(get-date)
+
         $open = $false
         $finished=$false
 
