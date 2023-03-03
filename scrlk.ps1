@@ -6,7 +6,7 @@
 Clear-Host
 Write-Output "Keep-alive with Scroll Lock..."
 
-$WShell = New-Object -com "Wscript.Shell"
+$WShell = New-Object -ComObject Wscript.Shell
 
 while ($true)
 {
