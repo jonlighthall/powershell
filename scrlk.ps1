@@ -1,5 +1,5 @@
-$blink_wait_ms = 64
-$blinks_per_loop = 2
+$blink_wait_ms = 32
+$blinks_per_loop = 4
 $loop_wait_min = 3/60
 $loop_wait_s = $loop_wait_min*60
 $WShell = New-Object -ComObject Wscript.Shell
