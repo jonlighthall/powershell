@@ -7,13 +7,11 @@ $keys=@("{CAPSLOCK}","{SCROLLLOCK}","{NUMLOCK}")
 $nkeys=$keys.Length
 Write-Output "Press Ctrl-C to exit."
 while ($true) {
-    for ($j=0;$j -lt $blinks_per_loop;$j++) {
+    for ($j=0;$j -lt ($blinks_per_loop*2);$j++) {
         for ($i=0;$i -lt $nkeys;$i++) {
             $WShell.sendkeys("$keys[$i]")
-            Start-Sleep -Milliseconds $blink_wait_ms
-            $WShell.sendkeys("$keys[$i]")
-            Start-Sleep -Milliseconds $blink_wait_ms
         }
+        Start-Sleep -Milliseconds $blink_wait_ms
     }
     Start-Sleep -Seconds $loop_wait_s
 }
