@@ -1,16 +1,13 @@
-$blink_wait_ms = 200
+$blink_wait_ms = 64
+$blinks_per_loop = 2
+$loop_wait_min = 3/60
+$loop_wait_s = $loop_wait_min*60
 $WShell = New-Object -ComObject Wscript.Shell
 $keys=@("{CAPSLOCK}","{SCROLLLOCK}","{NUMLOCK}")
 $nkeys=$keys.Length
-Write-Output "$keys has length $nkeys"
-Write-Output "start for loops"
-for ($i=0;$i -lt $nkeys;$i++) {
-    Write-Output "$i $($keys[$i])"
-}
-Write-Output "start while loop"
 Write-Output "Press Ctrl-C to exit."
 while ($true) {
-    for ($j=0;$j -lt 10;$j++) {
+    for ($j=0;$j -lt $blinks_per_loop;$j++) {
         for ($i=0;$i -lt $nkeys;$i++) {
             $WShell.sendkeys("$keys[$i]")
             Start-Sleep -Milliseconds $blink_wait_ms
@@ -18,5 +15,5 @@ while ($true) {
             Start-Sleep -Milliseconds $blink_wait_ms
         }
     }
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds $loop_wait_s
 }
