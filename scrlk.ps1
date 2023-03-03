@@ -4,7 +4,7 @@
 # https://gist.github.com/AndrewDavis
 
 Clear-Host
-Echo "Keep-alive with Scroll Lock..."
+Write-Output "Keep-alive with Scroll Lock..."
 
 $WShell = New-Object -com "Wscript.Shell"
 
