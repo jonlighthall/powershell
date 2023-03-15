@@ -1,4 +1,7 @@
 #!/bin/bash
+TAB="   "
+
+# set source and target directories
 SRCDIR=$PWD
 TGTDIR=$HOME/bin
 
@@ -19,24 +22,20 @@ do
 	echo -n "exists and is "
 	if [ -x $SRCDIR/$prog.sh ]; then
 	    echo "executable"
-
-	    echo -n "$TGTDIR/${prog}... "
+	    echo -n "${TAB}link $TGTDIR/${prog}... "
 	    if [ -e $TGTDIR/${prog} ] ; then
-		echo "already exists"
-
+		echo -n "exists and "
 		if [[ $SRCDIR/$prog.sh -ef $TGTDIR/$prog ]]; then
-
-		    echo " already points to ${prog}..."
-		    echo "skipping ..."
+		    echo "already points to ${prog}. skipping..."
 		    break
 		else
-		    echo " Backing up ${prog}..."
+		    echo -n "will be backed up..."
 		    mv -v $TGTDIR/${prog} $TGTDIR/${prog}_$(date +'%Y-%m-%d-t%H%M')
 		fi
 	    else
 		echo "does not exist"
 	    fi
-	    echo "making link..."
+	    echo -n "${TAB}making link... "
 	    ln -svf $SRCDIR/$prog.sh $TGTDIR/$prog
 	else
 	    echo "not executable"
