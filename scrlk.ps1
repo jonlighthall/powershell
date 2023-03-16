@@ -17,7 +17,7 @@ while ($true) {
     Write-Host -NoNewline "."
     $counter++
     if (($counter % 72)-eq 0) {
-        Write-Host ""
+        Write-Host "$(Get-Date -Format hh:mm)"
     }
     Start-Sleep -Seconds $loop_wait_s
 }
