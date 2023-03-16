@@ -1,6 +1,6 @@
 $blink_wait_ms = 32
 $blinks_per_loop = 2
-$loop_wait_min = 16
+$loop_wait_min = 8
 $loop_wait_s = $loop_wait_min*60
 $keys=@("{CAPSLOCK}","{SCROLLLOCK}","{NUMLOCK}")
 $nkeys=$keys.Length
