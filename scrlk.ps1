@@ -1,5 +1,5 @@
 # loop settings
-$loop_wait_min = 8
+$loop_wait_min = 8/6000
 $loop_wait_s = $loop_wait_min*60
 $loops_per_hour = $([int](60/$loop_wait_min))
 
@@ -30,8 +30,11 @@ while ($true) {
         }
         Start-Sleep -Milliseconds $blink_wait_ms
     }    
-    if (($counter -gt 0) -and (($counter % $ndots) -eq 0)) {
-        Write-Host " $(Get-Date -Format HH:mm)"
+    if (($counter % $ndots) -eq 0) {
+        if ($counter -gt 0) {
+            Write-Host
+        }
+        Write-Host -NoNewline "$(Get-Date -Format HH:mm) "
     }
     Write-Host -NoNewline "."	
     $counter++
