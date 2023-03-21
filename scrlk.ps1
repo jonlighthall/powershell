@@ -19,9 +19,6 @@ else {
 }
 Write-Output "Press Ctrl-C to exit."
 $counter = 0
-$counter2 = 0
-Write-Host "loops per hour = $loops_per_hour"
-Write-Host "dots per line = $ndots"
 
 $WShell = New-Object -ComObject Wscript.Shell
 while ($true) {
@@ -33,11 +30,8 @@ while ($true) {
     }
     if (($counter -gt 0) -and (($counter % $ndots) -eq 0)) {
         Write-Host " $(Get-Date -Format HH:mm)"
-	$counter2=0
     }
-    $counter2++
-    #Write-Host -NoNewline "$counter2"
-        Write-Host -NoNewline "."	
+    Write-Host -NoNewline "."	
     $counter++
     Start-Sleep -Seconds $loop_wait_s
 }
