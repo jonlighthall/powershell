@@ -1,42 +1,58 @@
 #!/bin/bash
+echo $BASH_SOURCE
 TAB="   "
 
 # set source and target directories
-SRCDIR=$PWD
-TGTDIR=$HOME/bin
+source_dir=$PWD
+BASH_DIR="$( cd "$( dirname "$0" )" && pwd )"
+echo "bash dir $BASH_DIR"
+user_bin=$HOME/bin
 
 # check target directory
-echo -n "target directory $TGTDIR... "
-if [ -d $TGTDIR ]; then
+echo -n "target directory $user_bin... "
+if [ -d $user_bin ]; then
     echo "exists"
 else
     echo "does not exist"
-    mkdir -pv $TGTDIR
+    mkdir -pv $user_bin
 fi
 
+echo "source directory $source_dir"
+
+echo "--------------------------------------"
+echo "------ Start Linking Repo Files-------"
+echo "--------------------------------------"
+
 # list files to be linked in bin
+ext=.sh
 for prog in clicker
 do
-    echo -n "program $SRCDIR/$prog.sh... "
-    if [ -e $SRCDIR/$prog.sh ]; then
+    target=${source_dir}/${prog}${ext}
+    link=${user_bin}/$prog
+
+    echo -n "program $target... "
+    if [ -e $target ]; then
 	echo -n "exists and is "
-	if [ -x $SRCDIR/$prog.sh ]; then
+	if [ -x $target ]; then
 	    echo "executable"
-	    echo -n "${TAB}link $TGTDIR/${prog}... "
-	    if [ -e $TGTDIR/${prog} ] ; then
+	    echo -n "${TAB}link $link... "
+	    if [ -e $link ] || [ -L $link ] || [ -d $link ] ; then
 		echo -n "exists and "
-		if [[ $SRCDIR/$prog.sh -ef $TGTDIR/$prog ]]; then
-		    echo "already points to ${prog}. skipping..."
-		    break
+		if [[ $target -ef $link ]]; then
+		    echo "already points to ${prog}"
+		    echo -n "${TAB}"
+		    ls -lhG --color=auto $link
+		    echo "${TAB}skipping..."
+		    continue
 		else
 		    echo -n "will be backed up..."
-		    mv -v $TGTDIR/${prog} $TGTDIR/${prog}_$(date +'%Y-%m-%d-t%H%M')
+		    mv -v $link ${link}_$(date +'%Y-%m-%d-t%H%M')
 		fi
 	    else
 		echo "does not exist"
 	    fi
 	    echo -n "${TAB}making link... "
-	    ln -svf $SRCDIR/$prog.sh $TGTDIR/$prog
+	    ln -sv $target $link
 	else
 	    echo "not executable"
 	fi
@@ -44,3 +60,6 @@ do
 	echo "does not exist"
     fi
 done
+echo "--------------------------------------"
+echo "--------- Done Making Links ----------"
+echo "--------------------------------------"
