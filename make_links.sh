@@ -3,12 +3,19 @@ echo $BASH_SOURCE
 TAB="   "
 
 # set source and target directories
-source_dir=$PWD
 BASH_DIR="$( cd "$( dirname "$0" )" && pwd )"
-echo "bash dir $BASH_DIR"
+source_dir=$PWD
 user_bin=$HOME/bin
 
-# check target directory
+# check directories
+echo "source directory $source_dir..."
+if [ -d $source_dir ]; then
+    echo "exists"
+else
+    echo "does not exist"
+    return 1
+fi
+
 echo -n "target directory $user_bin... "
 if [ -d $user_bin ]; then
     echo "exists"
@@ -17,18 +24,16 @@ else
     mkdir -pv $user_bin
 fi
 
-echo "source directory $source_dir"
-
 echo "--------------------------------------"
 echo "------ Start Linking Repo Files-------"
 echo "--------------------------------------"
 
-# list files to be linked in bin
+# list files to be linked
 ext=.sh
 for prog in clicker
 do
     target=${source_dir}/${prog}${ext}
-    link=${user_bin}/$prog
+    link=${user_bin}/${prog}
 
     echo -n "program $target... "
     if [ -e $target ]; then
@@ -36,7 +41,8 @@ do
 	if [ -x $target ]; then
 	    echo "executable"
 	    echo -n "${TAB}link $link... "
-	    if [ -e $link ] || [ -L $link ] || [ -d $link ] ; then
+	    # first, backup existing copy
+	    if [ -L $link ] || [ -f $link ] || [ -d $link ]; then
 		echo -n "exists and "
 		if [[ $target -ef $link ]]; then
 		    echo "already points to ${prog}"
@@ -51,6 +57,7 @@ do
 	    else
 		echo "does not exist"
 	    fi
+	    # then link
 	    echo -n "${TAB}making link... "
 	    ln -sv $target $link
 	else
