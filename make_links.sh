@@ -30,7 +30,7 @@ echo "--------------------------------------"
 
 # list files to be linked
 ext=.sh
-for prog in blank clicker
+for prog in blank clicker wiggler
 do
     target=${source_dir}/${prog}${ext}
     link=${user_bin}/${prog}
