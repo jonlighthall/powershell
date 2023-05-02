@@ -1,5 +1,12 @@
 #!/bin/bash
-echo $BASH_SOURCE
+# print source name at start
+echo -n "source: $BASH_SOURCE"
+src_name=$(readlink -f $BASH_SOURCE)
+if [ $BASH_SOURCE = $src_name ]; then
+    echo
+else
+    echo " -> $src_name"
+fi
 fpretty=${HOME}/utils/bash/.bashrc_pretty
 if [ -e $fpretty ]; then
     source $fpretty
@@ -8,8 +15,7 @@ fi
 TAB="   "
 
 # set source and target directories
-BASH_DIR="$( cd "$( dirname "$0" )" && pwd )"
-source_dir=$PWD
+source_dir=$(dirname $src_name)
 user_bin=$HOME/bin
 
 # check directories
