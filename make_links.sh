@@ -33,7 +33,7 @@ bar 38 "------ Start Linking Repo Files-------"
 
 # list files to be linked
 ext=.sh
-for prog in blank clicker
+for prog in blank clicker shutdown_wsl
 do
     target=${source_dir}/${prog}${ext}
     sub_dir=$(dirname "$prog")
