@@ -1,5 +1,10 @@
 #!/bin/bash
 echo $BASH_SOURCE
+fpretty=${HOME}/utils/bash/.bashrc_pretty
+if [ -e $fpretty ]; then
+    source $fpretty
+fi
+
 TAB="   "
 
 # set source and target directories
@@ -24,15 +29,17 @@ else
     mkdir -pv $user_bin
 fi
 
-echo "--------------------------------------"
-echo "------ Start Linking Repo Files-------"
-echo "--------------------------------------"
+bar 38 "------ Start Linking Repo Files-------"
 
 # list files to be linked
 ext=.sh
 for prog in blank clicker
 do
     target=${source_dir}/${prog}${ext}
+    sub_dir=$(dirname "$prog")
+    if [ ! $sub_dir = "." ]; then
+	prog=$(basename "$prog")
+    fi
     link=${user_bin}/${prog}
 
     echo -n "program $target... "
@@ -45,7 +52,7 @@ do
 	    if [ -L $link ] || [ -f $link ] || [ -d $link ]; then
 		echo -n "exists and "
 		if [[ $target -ef $link ]]; then
-		    echo "already points to ${prog}"
+		    echo -e "${GOOD}already points to ${prog}${NORMAL}"
 		    echo -n "${TAB}"
 		    ls -lhG --color=auto $link
 		    echo "${TAB}skipping..."
@@ -58,15 +65,17 @@ do
 		echo "does not exist"
 	    fi
 	    # then link
-	    echo -n "${TAB}making link... "
-	    ln -sv $target $link
-	else
-	    echo "not executable"
-	fi
+	    echo -en "${TAB}${GRH}";hline 72;
+	    echo "${TAB}making link... "
+	    ln -sv $target $link | sed "s/^/${TAB}/"
+	    echo -ne "${TAB}";hline 72;echo -en "${NORMAL}"
+        else
+            echo -e "${BAD}not executable${NORMAL}"
+        fi
     else
-	echo "does not exist"
+        echo -e "${BAD}does not exist${NORMAL}"
     fi
 done
-echo "--------------------------------------"
-echo "--------- Done Making Links ----------"
-echo "--------------------------------------"
+bar 38 "--------- Done Making Links ----------"
+# print time at exit
+echo -e "\n$(date +"%R") ${BASH_SOURCE##*/} $(sec2elap $SECONDS)"
