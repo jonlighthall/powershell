@@ -7,6 +7,7 @@ if [ $BASH_SOURCE = $src_name ]; then
 else
     echo " -> $src_name"
 fi
+# load formatting
 fpretty=${HOME}/utils/bash/.bashrc_pretty
 if [ -e $fpretty ]; then
     source $fpretty
@@ -16,10 +17,10 @@ TAB="   "
 
 # set source and target directories
 source_dir=$(dirname $src_name)
-user_bin=$HOME/bin
+target_dir=$HOME/bin
 
 # check directories
-echo "source directory $source_dir..."
+echo -n "source directory ${source_dir}... "
 if [ -d $source_dir ]; then
     echo "exists"
 else
@@ -27,28 +28,28 @@ else
     return 1
 fi
 
-echo -n "target directory $user_bin... "
-if [ -d $user_bin ]; then
+echo -n "target directory ${target_dir}... "
+if [ -d $target_dir ]; then
     echo "exists"
 else
     echo "does not exist"
-    mkdir -pv $user_bin
+    mkdir -pv $target_dir
 fi
 
 bar 38 "------ Start Linking Repo Files-------"
 
-# list files to be linked
+# list of files to be linked
 ext=.sh
-for prog in blank clicker shutdown_wsl
+for my_link in blank clicker shutdown_wsl
 do
-    target=${source_dir}/${prog}${ext}
-    sub_dir=$(dirname "$prog")
+    target=${source_dir}/${my_link}${ext}
+    sub_dir=$(dirname "$my_link")
     if [ ! $sub_dir = "." ]; then
-	prog=$(basename "$prog")
+	my_link=$(basename "$my_link")
     fi
-    link=${user_bin}/${prog}
+    link=${target_dir}/${my_link}
 
-    echo -n "program $target... "
+    echo -n "source file $target... "
     if [ -e $target ]; then
 	echo -n "exists and is "
 	if [ -x $target ]; then
@@ -58,7 +59,7 @@ do
 	    if [ -L $link ] || [ -f $link ] || [ -d $link ]; then
 		echo -n "exists and "
 		if [[ $target -ef $link ]]; then
-		    echo -e "${GOOD}already points to ${prog}${NORMAL}"
+		    echo -e "${GOOD}already points to ${my_link}${NORMAL}"
 		    echo -n "${TAB}"
 		    ls -lhG --color=auto $link
 		    echo "${TAB}skipping..."
@@ -81,6 +82,7 @@ do
     else
         echo -e "${BAD}does not exist${NORMAL}"
     fi
+    echo
 done
 bar 38 "--------- Done Making Links ----------"
 # print time at exit
