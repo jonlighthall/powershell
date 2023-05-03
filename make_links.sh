@@ -13,8 +13,6 @@ if [ -e $fpretty ]; then
     source $fpretty
 fi
 
-TAB="   "
-
 # set source and target directories
 source_dir=$(dirname $src_name)
 target_dir=$HOME/bin
