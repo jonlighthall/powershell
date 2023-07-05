@@ -20,4 +20,4 @@ fi
 source_dir=$(dirname $src_name)
 cd $source_dir
 powershell.exe -File ./scrlk.ps1
-trap "echo ' $(sec2elap $SECONDS)'" EXIT
+trap "echo -e '\x1B[17G $(sec2elap $SECONDS)'" EXIT
