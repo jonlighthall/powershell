@@ -1,5 +1,5 @@
 # loop settings
-$loop_wait_min = 8
+$loop_wait_min = 4
 $loop_wait_s = $loop_wait_min*60
 $loops_per_hour = $([int](60/$loop_wait_min))
 
