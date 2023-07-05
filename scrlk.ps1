@@ -1,3 +1,7 @@
+# define time
+$StartTime = $(get-date)
+$elapsedTime = $(get-date) - $StartTime
+
 # loop settings
 $loop_wait_min = 4
 $loop_wait_s = $loop_wait_min*60
@@ -31,8 +35,17 @@ while ($true) {
         Start-Sleep -Milliseconds $blink_wait_ms
     }    
     if (($counter % $ndots) -eq 0) {
-        if ($counter -gt 0) {
-            Write-Host
+        if ($counter -gt 0) {	        
+            $elapsedTime = $(get-date) - $StartTime
+            if ($elapsedTime.TotalSeconds -lt 1) {	
+                Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"               
+            } elseif ($elapsedTime.TotalSeconds -lt 60) {
+                Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalSeconds)) s"    
+            } elseif ($elapsedTime.Minutess -lt 60) {
+                Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalMinutes)) min"    
+            } else {
+                Write-Host " elapsed time = $("{0:n1}" -f $($elapsedTime.TotalHours)) hr"    
+            }
         }
         Write-Host -NoNewline "$(Get-Date -Format HH:mm) "
     }
