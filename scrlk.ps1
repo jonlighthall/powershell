@@ -37,11 +37,14 @@ while ($true) {
     if (($counter % $ndots) -eq 0) {
         if ($counter -gt 0) {	        
             $elapsedTime = $(get-date) - $StartTime
+            #Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms $($elapsedTime.TotalSeconds -lt 1)"
+            #$cur_pos=$host.UI.RawUI.CursorPosition;
+            #$cur_pos.X=16;           
             if ($elapsedTime.TotalSeconds -lt 1) {	
                 Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"               
             } elseif ($elapsedTime.TotalSeconds -lt 60) {
                 Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalSeconds)) s"    
-            } elseif ($elapsedTime.Minutess -lt 60) {
+            } elseif ($elapsedTime.TotalMinutes -lt 60) {
                 Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalMinutes)) min"    
             } else {
                 Write-Host " elapsed time = $("{0:n1}" -f $($elapsedTime.TotalHours)) hr"    
