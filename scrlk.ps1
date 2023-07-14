@@ -22,17 +22,6 @@ $keys=@("{CAPSLOCK}","{SCROLLLOCK}","{NUMLOCK}")
 $nkeys=$keys.Length
 $WShell = New-Object -ComObject Wscript.Shell
 
-# check that loop_wait is long enough for commands to finish
-$cmd_time=$blink_wait_ms*$blinks_per_loop*2*$nkeys
-if (($cmd_time) -gt $loop_wait_ms) {
-    $TAB="   "
-    Write-Host "${TAB}total blink duration = $cmd_time ms"
-    Write-Host "${TAB}blink duration = $($loop_wait_ms*2) ms"
-    Write-Host "${TAB}loop_wait = $loop_wait_ms ms"
-    #$loop_wait_ms = $cmd_time/2 * 1.05
-    Write-Host "${TAB}loop_wait increased to $loop_wait_ms ms"
-}
-
 # print settings
 $line_lim=10
 if ($loops_per_hour -gt $line_lim) {
