@@ -10,7 +10,7 @@ $elapsedTime = $(get-date) - $StartTime
 # loop settings
 $loop_wait_min = 4
 $loop_wait_s = $loop_wait_min*60
-$loop_wait_ms = $loop_wait_s/1000
+$loop_wait_ms = $loop_wait_s*1000
 $loops_per_hour = $([int](60/$loop_wait_min))
 
 # blink settings
@@ -22,6 +22,17 @@ $keys=@("{CAPSLOCK}","{SCROLLLOCK}","{NUMLOCK}")
 $nkeys=$keys.Length
 $WShell = New-Object -ComObject Wscript.Shell
 
+# check that loop_wait is long enough for commands to finish
+$cmd_time=$blink_wait_ms*$blinks_per_loop*2*$nkeys
+if (($cmd_time) -gt $loop_wait_ms) {
+    $TAB="   "
+    Write-Host "${TAB}total blink duration = $cmd_time ms"
+    Write-Host "${TAB}blink duration = $($loop_wait_ms*2) ms"
+    Write-Host "${TAB}loop_wait = $loop_wait_ms ms"
+    #$loop_wait_ms = $cmd_time/2 * 1.05
+    Write-Host "${TAB}loop_wait increased to $loop_wait_ms ms"
+}
+
 # print settings
 $line_lim=10
 if ($loops_per_hour -gt $line_lim) {
@@ -31,15 +42,29 @@ else {
     $ndots=$loops_per_hour
 }
 Write-Output "Press Ctrl-C to exit."
+Write-Output "Do not exit when WAIT is displayed."
 $counter = 0
 
 while ($true) {
-    for ($j=0;$j -lt ($blinks_per_loop*2);$j++) {
-        for ($i=0;$i -lt $nkeys;$i++) {
-            $WShell.sendkeys("$keys[$i]")
+    if ($counter -gt 0) {	
+        Write-Host -NoNewline "WAIT"                        
+        for ($j=0;$j -lt ($blinks_per_loop*2);$j++) {
+            for ($i=0;$i -lt $nkeys;$i++) {
+                $WShell.sendkeys("$keys[$i]")
+            }
+            Start-Sleep -Milliseconds $blink_wait_ms
         }
-        Start-Sleep -Milliseconds $blink_wait_ms
-    }    
+        # clear wait message
+        $cur_pos=$host.UI.RawUI.CursorPosition;
+        $cur_pos.X-=4;      
+        $host.UI.RawUI.CursorPosition=$cur_pos                
+        Write-Host -NoNewline "    "
+        # reset cursor position
+        $cur_pos=$host.UI.RawUI.CursorPosition
+        $cur_pos.X -=4;
+        $host.UI.RawUI.CursorPosition=$cur_pos                
+    }
+    
     if (($counter % $ndots) -eq 0) {
         if ($counter -gt 0) {	                                
             $elapsedTime = $(get-date) - $StartTime
@@ -53,9 +78,9 @@ while ($true) {
                 Write-Host " elapsed time = $("{0:n1}" -f $($elapsedTime.TotalHours)) hr"    
             }
             if  ($elapsedTime.TotalHours -ge 10) {               
-                $cur_pos=$host.UI.RawUI.CursorPosition;
-                $cur_pos.X=16-3;  
-                $host.UI.RawUI.CursorPosition=$cur_pos;                
+                $cur_pos=$host.UI.RawUI.CursorPosition
+                $cur_pos.X=16-3
+                $host.UI.RawUI.CursorPosition=$cur_pos
                 Write-Host "PS: elapsed time exceeds 10 hr"                        
                 exit
             }                
