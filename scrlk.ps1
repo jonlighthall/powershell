@@ -35,17 +35,19 @@ Write-Host "Press Ctrl-C to exit."
 $msg="WAIT"
 Write-Host "Do not exit when $msg is displayed."
 $counter = 0
+$txt="All work and no play makes Jack a dull boy."
 
 while ($true) {
     if ($counter -gt 0) {	
         Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"                        
+        $WShell.sendkeys("$txt")
         for ($j=0;$j -lt ($blinks_per_loop*2);$j++) {
             for ($i=0;$i -lt $nkeys;$i++) {                                
                 $WShell.sendkeys($($keys[$i]))
-            }
-            #$WShell.sendkeys("All work and no play makes Jack a dull boy.~")
-            Start-Sleep -Milliseconds $blink_wait_ms
+            }            
+            Start-Sleep -Milliseconds $blink_wait_ms            
         }
+        $WShell.sendkeys($("{BS}" * $txt.Length))
         # clear wait message
         $cur_pos=$host.UI.RawUI.CursorPosition;
         $cur_pos.X-=$msg.Length;      
