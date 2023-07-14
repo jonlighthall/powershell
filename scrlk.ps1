@@ -1,3 +1,8 @@
+# print source name at start
+$scr_path = Get-Location
+$scr_name = $MyInvocation.MyCommand.Name
+Write-Host "running $scr_path\$scr_name..."
+
 # define time
 $StartTime = $(get-date)
 $elapsedTime = $(get-date) - $StartTime
@@ -5,6 +10,7 @@ $elapsedTime = $(get-date) - $StartTime
 # loop settings
 $loop_wait_min = 4
 $loop_wait_s = $loop_wait_min*60
+$loop_wait_ms = $loop_wait_s/1000
 $loops_per_hour = $([int](60/$loop_wait_min))
 
 # blink settings
@@ -35,24 +41,28 @@ while ($true) {
         Start-Sleep -Milliseconds $blink_wait_ms
     }    
     if (($counter % $ndots) -eq 0) {
-        if ($counter -gt 0) {	        
+        if ($counter -gt 0) {	                                
             $elapsedTime = $(get-date) - $StartTime
-            #Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms $($elapsedTime.TotalSeconds -lt 1)"
-            #$cur_pos=$host.UI.RawUI.CursorPosition;
-            #$cur_pos.X=16;           
-            if ($elapsedTime.TotalSeconds -lt 1) {	
-                Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"               
+            if ($elapsedTime.TotalSeconds -lt 1) {
+                Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"
             } elseif ($elapsedTime.TotalSeconds -lt 60) {
-                Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalSeconds)) s"    
+                Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalSeconds)) s"
             } elseif ($elapsedTime.TotalMinutes -lt 60) {
                 Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalMinutes)) min"    
             } else {
                 Write-Host " elapsed time = $("{0:n1}" -f $($elapsedTime.TotalHours)) hr"    
             }
+            if  ($elapsedTime.TotalHours -ge 10) {               
+                $cur_pos=$host.UI.RawUI.CursorPosition;
+                $cur_pos.X=16-3;  
+                $host.UI.RawUI.CursorPosition=$cur_pos;                
+                Write-Host "PS: elapsed time exceeds 10 hr"                        
+                exit
+            }                
         }
         Write-Host -NoNewline "$(Get-Date -Format HH:mm) "
     }
     Write-Host -NoNewline "."	
-    $counter++
-    Start-Sleep -Seconds $loop_wait_s
+    $counter++    
+    Start-Sleep -Milliseconds $loop_wait_ms
 }
