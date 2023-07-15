@@ -1,3 +1,6 @@
+# The following command may need to be run before running this script
+# Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
+
 Set-Variable -Name "userdir" -Value "C:\Users\jlighthall"
 Set-Variable -Name "source" -Value "$userdir\AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets\"
 Set-Variable -Name "target" -Value "$userdir\OneDrive - US Navy-flankspeed\Pictures\Lock Screen"

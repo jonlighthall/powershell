@@ -1,3 +1,6 @@
+# The following command may need to be run before running this script
+# Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
+
 # print source name at start
 $scr_path = Get-Location
 $scr_name = $MyInvocation.MyCommand.Name

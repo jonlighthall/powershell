@@ -1,3 +1,6 @@
+# The following command may need to be run before running this script
+# Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
+
 # settings
 $update_wait_ms = 256
 $loop_wait_ms = 512
