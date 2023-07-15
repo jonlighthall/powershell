@@ -4,7 +4,7 @@
 Set-Variable -Name "userdir" -Value "C:\Users\jlighthall"
 Set-Variable -Name "source" -Value "$userdir\AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets\"
 Set-Variable -Name "target" -Value "$userdir\OneDrive - US Navy-flankspeed\Pictures\Lock Screen"
-$start_dir = pwd
+$start_dir = Get-Location
 
 Write-Output "copy pictures..."
 if (Test-Path -Path $source) {
