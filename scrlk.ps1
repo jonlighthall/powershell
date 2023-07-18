@@ -36,7 +36,7 @@ else {
 Write-Host "Press Ctrl-C to exit."
 # set wait message
 $msg="WAIT"
-Write-Host "Do not exit when $msg is displayed."
+Write-Host "Do not exit while $msg is displayed."
 $counter = 0
 $txt="All work and no play makes Jack a dull boy."
 
