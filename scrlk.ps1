@@ -5,7 +5,18 @@
 $scr_path = Get-Location
 $scr_name = $MyInvocation.MyCommand.Name
 Write-Host "running $scr_path\$scr_name..."
+
+#get PID
 $host.ui.RawUI.WindowTitle = "$scr_name"
+Write-Host "window title shoudl be $scr_name"
+#Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle} | Format-Table Id,Name,MainWindowTitle
+Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $scr_name} | Format-Table Id,Name,MainWindowTitle
+$src_proc=Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $scr_name}
+#Write-Host "process = $src_proc"
+$scr_pid=$(($src_proc).Id)
+Write-Host "pid = $scr_pid"
+
+
 
 # define time
 $StartTime = $(get-date)
