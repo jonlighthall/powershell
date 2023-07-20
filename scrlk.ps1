@@ -20,7 +20,7 @@ $StartTime = $(get-date)
 $elapsedTime = $(get-date) - $StartTime
 
 # loop settings
-$loop_wait_min = 4/60
+$loop_wait_min = 4
 $loop_wait_s = $loop_wait_min*60
 $loop_wait_ms = $loop_wait_s*1000
 $loops_per_hour = $([int](60/$loop_wait_min))
