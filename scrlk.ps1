@@ -8,11 +8,11 @@ Write-Host "running $src_path\$src_name..."
 
 #get PID
 $host.ui.RawUI.WindowTitle = "$src_name"
-Write-Host "window title shoudl be $src_name"
+Write-Host "   window title should be $src_name"
 Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $src_name} | Format-Table Id,Name,MainWindowTitle
 $src_proc=Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $src_name}
 $src_pid=$(($src_proc).Id)
-Write-Host "pid = $src_pid"
+Write-Host "   PID = $src_pid"
 
 # define time
 $StartTime = $(get-date)
@@ -49,18 +49,29 @@ $counter = 0
 $txt="All work and no play makes Jack a dull boy."
 
 while ($true) {
-    if ($counter -gt 0) {        
+    if ($src_pid -gt 0) {
         $null = (New-Object -ComObject WScript.Shell).AppActivate($src_pid)
+        $do_text=$true  
+    }
+    else {
+        $do_text=$false 
+    }
+    if ($counter -gt 0) {        
         Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"        
+        if ($do_text) {
         $WShell.sendkeys("$txt")
+        }
         for ($j=0;$j -lt ($blinks_per_loop*2);$j++) {
             for ($i=0;$i -lt $nkeys;$i++) {                
                 $WShell.sendkeys($($keys[$i]))
             }            
             Start-Sleep -Milliseconds $blink_wait_ms
         }
-        #Start-Sleep -Milliseconds 500        
-        $WShell.sendkeys($("{BS}" * $txt.Length))
+        
+        if ($do_text) {
+            #Start-Sleep -Milliseconds 500        
+            $WShell.sendkeys($("{BS}" * $txt.Length))
+        }
         # clear wait message
         $cur_pos=$host.UI.RawUI.CursorPosition;
         $cur_pos.X-=$msg.Length;      
