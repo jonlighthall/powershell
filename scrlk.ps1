@@ -51,6 +51,7 @@ $txt="All work and no play makes Jack a dull boy."
 while ($true) {
     if ($counter -gt 0) {        
         Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"
+        $null = (New-Object -ComObject WScript.Shell).AppActivate($src_pid)
         $WShell.sendkeys("$txt")
         for ($j=0;$j -lt ($blinks_per_loop*2);$j++) {
             for ($i=0;$i -lt $nkeys;$i++) {                
