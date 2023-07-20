@@ -19,7 +19,7 @@ $StartTime = $(get-date)
 $elapsedTime = $(get-date) - $StartTime
 
 # loop settings
-$loop_wait_min = 4
+$loop_wait_min = 4/60
 $loop_wait_s = $loop_wait_min*60
 $loop_wait_ms = $loop_wait_s*1000
 $loops_per_hour = $([int](60/$loop_wait_min))
@@ -50,8 +50,8 @@ $txt="All work and no play makes Jack a dull boy."
 
 while ($true) {
     if ($counter -gt 0) {        
-        Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"
         $null = (New-Object -ComObject WScript.Shell).AppActivate($src_pid)
+        Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"        
         $WShell.sendkeys("$txt")
         for ($j=0;$j -lt ($blinks_per_loop*2);$j++) {
             for ($i=0;$i -lt $nkeys;$i++) {                
@@ -95,6 +95,8 @@ while ($true) {
         Write-Host -NoNewline "$(Get-Date -Format HH:mm) "
     }
     Write-Host -NoNewline "."	
-    $counter++    
-    Start-Sleep -Milliseconds $loop_wait_ms
+    $counter++
+    $this_wait = Get-Random -Minimum 0 -Maximum $loop_wait_ms
+    $this_wait = $([int] $this_wait)    
+    Start-Sleep -Milliseconds $this_wait
 }
