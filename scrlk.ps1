@@ -2,21 +2,17 @@
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
 
 # print source name at start
-$scr_path = Get-Location
-$scr_name = $MyInvocation.MyCommand.Name
-Write-Host "running $scr_path\$scr_name..."
+$src_path = Get-Location
+$src_name = $MyInvocation.MyCommand.Name
+Write-Host "running $src_path\$src_name..."
 
 #get PID
-$host.ui.RawUI.WindowTitle = "$scr_name"
-Write-Host "window title shoudl be $scr_name"
-#Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle} | Format-Table Id,Name,MainWindowTitle
-Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $scr_name} | Format-Table Id,Name,MainWindowTitle
-$src_proc=Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $scr_name}
-#Write-Host "process = $src_proc"
-$scr_pid=$(($src_proc).Id)
-Write-Host "pid = $scr_pid"
-
-
+$host.ui.RawUI.WindowTitle = "$src_name"
+Write-Host "window title shoudl be $src_name"
+Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $src_name} | Format-Table Id,Name,MainWindowTitle
+$src_proc=Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $src_name}
+$src_pid=$(($src_proc).Id)
+Write-Host "pid = $src_pid"
 
 # define time
 $StartTime = $(get-date)
