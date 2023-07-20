@@ -7,10 +7,11 @@ $src_name = $MyInvocation.MyCommand.Name
 Write-Host "running $src_path\$src_name..."
 
 #get PID
-$host.ui.RawUI.WindowTitle = "$src_name"
-Write-Host "   window title should be $src_name"
-Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $src_name} | Format-Table Id,Name,MainWindowTitle
-$src_proc=Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like $src_name}
+$src_win="$src_name $(Get-Date -Format HH:mm)"
+$host.ui.RawUI.WindowTitle = "$src_win"
+Write-Host "   window title should be $src_win"
+Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like ${src_win}} | Format-Table Id,Name,MainWindowTitle
+$src_proc=Get-Process WindowsTerminal | Where-Object {$_.mainWindowTitle -like ${src_win}}
 $src_pid=$(($src_proc).Id)
 Write-Host "   PID = $src_pid"
 
