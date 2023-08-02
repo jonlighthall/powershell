@@ -21,5 +21,6 @@ source_dir=$(dirname $src_name)
 cd $source_dir
 echo -n "connecting to powershell... "
 powershell.exe Write-Output "done"
+clear -x
 powershell.exe -File ./scrlk.ps1
 trap "echo -e '\x1B[11G BASH: $(sec2elap $SECONDS)'" EXIT
