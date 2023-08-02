@@ -1,11 +1,9 @@
 #!/bin/bash
+# exit on errors
+set -e
 
-# print source name at start
-echo "${TAB}running $BASH_SOURCE..."
-src_name=$(readlink -f $BASH_SOURCE)
-if [ ! "$BASH_SOURCE" = "$src_name" ]; then
-    echo -e "${TAB}${VALID}link${NORMAL} -> $src_name"
-fi
+# set tab
+:${TAB:=''}
 
 # load formatting
 fpretty=${HOME}/utils/bash/.bashrc_pretty
@@ -13,25 +11,32 @@ if [ -e $fpretty ]; then
     source $fpretty
 fi
 
-# set source and target directories
-source_dir=$(dirname "$src_name")
-target_dir=$HOME/bin
+# print source name at start
+echo -e "${TAB}running ${PSDIR}$BASH_SOURCE${NORMAL}..."
+src_name=$(readlink -f $BASH_SOURCE)
+if [ ! "$BASH_SOURCE" = "$src_name" ]; then
+    echo -e "${TAB}${VALID}link${NORMAL} -> $src_name"
+fi
+
+# set target and link directories
+target_dir=$(dirname "$src_name")
+link_dir=$HOME/bin
 
 # check directories
-echo -n "source directory ${source_dir}... "
-if [ -d "$source_dir" ]; then
+echo -n "target directory ${target_dir}... "
+if [ -d "$target_dir" ]; then
     echo "exists"
 else
     echo -e "${BAD}does not exist${NORMAL}"
     exit 1
 fi
 
-echo -n "target directory ${target_dir}... "
-if [ -d $target_dir ]; then
+echo -n "link directory ${link_dir}... "
+if [ -d $link_dir ]; then
     echo "exists"
 else
     echo "does not exist"
-    mkdir -pv $target_dir
+    mkdir -pv $link_dir
 fi
 
 bar 38 "------ Start Linking Repo Files-------"
@@ -40,19 +45,46 @@ bar 38 "------ Start Linking Repo Files-------"
 ext=.sh
 for my_link in blank clicker shutdown_wsl
 do
-    target=${source_dir}/${my_link}${ext}
+    # define target (source)
+    target=${target_dir}/${my_link}${ext}
+    # define link (destination)
     sub_dir=$(dirname "$my_link")
     if [ ! $sub_dir = "." ]; then
+        # strip target subdirectory from link name
 	my_link=$(basename "$my_link")
     fi
-    link=${target_dir}/${my_link}
+    link=${link_dir}/${my_link}
 
-    echo -n "source file ${target}... "
+    echo -n "target file ${target}... "
     if [ -e "${target}" ]; then
-	echo -n "exists and is "
-	if [ -x "${target}" ]; then
-	    echo "executable"
-	echo -n "${TAB}link ${link}... "
+	echo "exists "
+
+	# next, check file permissions
+	if true; then
+	    echo -n "${TAB}${target##*/} requires specific permissions: "
+	    permOK=700
+	    echo "${permOK}"
+	    TAB+=${fTAB:='   '}
+	    echo -n "${TAB}checking permissions... "
+	    perm=$(stat -c "%a" ${target})
+	    echo ${perm}
+	    if [[ ${perm} -gt ${permOK}  ]]; then
+		echo -n "${TAB}changing permissions to ${permOK}... "
+		chmod u+x ${target}
+		RETVAL=$?
+		if [ $RETVAL -eq 0 ]; then
+		    echo -e "${GOOD}OK${NORMAL} ${gray}RETVAL=$RETVAL${NORMAL}"
+		else
+		    echo -e "${BAD}FAIL${NORMAL} ${gray}RETVAL=$RETVAL${NORMAL}"
+		fi
+	    else
+		echo -e "${TAB}permissions ${GOOD}OK${NORMAL}"
+	    fi
+	    TAB=${TAB%$fTAB}
+	fi
+
+	echo -n "${TAB}link $link... "
+	TAB+=${fTAB:='   '}
 	# first, backup existing copy
 	if [ -L ${link} ] || [ -f ${link} ] || [ -d ${link} ]; then
 	    echo -n "exists and "
@@ -61,11 +93,13 @@ do
 		echo -n "${TAB}"
 		ls -lhG --color=auto ${link}
 		echo "${TAB}skipping..."
+		TAB=${TAB%$fTAB}
 		continue
 	    else
-		if [ $(diff "${target}" ${link} | wc -c) -eq 0 ]; then
+		if [ $(diff -ebwB "${target}" ${link} | wc -c) -eq 0 ]; then
 		    echo "have the same contents"
-		    continue
+		    echo -n "${TAB}deleting... "
+		    rm -v ${link}
 		else
 		    echo -n "will be backed up..."
 		    mv -v ${link} ${link}_$(date -r ${link} +'%Y-%m-%d-t%H%M')
@@ -79,16 +113,15 @@ do
 	echo "${TAB}making link... "
 	ln -sv "${target}" ${link} | sed "s/^/${TAB}/"
 	echo -ne "${TAB}";hline 72;echo -en "${NORMAL}"
-        else
-            echo -e "${BAD}not executable${NORMAL}"
-        fi
+	TAB=${TAB%$fTAB}
     else
         echo -e "${BAD}does not exist${NORMAL}"
     fi
 done
 bar 38 "--------- Done Making Links ----------"
+
 # print time at exit
-echo -en "$(date +"%a %b %-d %I:%M %p %Z") ${BASH_SOURCE##*/} "
+echo -en "\n$(date +"%a %b %-d %I:%M %p %Z") ${BASH_SOURCE##*/} "
 if command -v sec2elap &>/dev/null; then
     sec2elap ${SECONDS}
 else
