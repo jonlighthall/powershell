@@ -7,7 +7,12 @@ if [ -e $fpretty ]; then
 fi
 
 # print source name at start
-echo "${TAB}running $BASH_SOURCE..."
+if (return 0 2>/dev/null); then
+    RUN_TYPE="sourcing"
+else
+    RUN_TYPE="executing"
+fi
+echo "${TAB}${RUN_TYPE} $BASH_SOURCE..."
 src_name=$(readlink -f $BASH_SOURCE)
 if [ ! "$BASH_SOURCE" = "$src_name" ]; then
     echo -e "${TAB}${VALID}link${NORMAL} -> $src_name"
