@@ -60,6 +60,7 @@ do
     fi
     link=${link_dir}/${my_link}
 
+    # check if target exists
     echo -n "target file ${target}... "
     if [ -e "${target}" ]; then
 	echo "exists "
@@ -67,15 +68,16 @@ do
 	# next, check file permissions
 	if true; then
 	    echo -n "${TAB}${target##*/} requires specific permissions: "
-	    permOK=700
+	    permOK=500
 	    echo "${permOK}"
 	    TAB+=${fTAB:='   '}
 	    echo -n "${TAB}checking permissions... "
-	    perm=$(stat -c "%a" ${target})
+	    perm=$(stat -c "%a" "${target}")
 	    echo ${perm}
-	    if [[ ${perm} -gt ${permOK}  ]]; then
-		echo -n "${TAB}changing permissions to ${permOK}... "
-		chmod u+x ${target}
+	    # the target files will have the required permissions added to the existing permissions
+	    if [[ ${perm} -le ${permOK}  ]] || [[ ! ( -f "${target}" && -x "${target}" ) ]]; then
+		echo -en "${TAB}${GRH}changing permissions${NORMAL} to ${permOK}... "
+		chmod +${permOK} "${target}" || chmod u+rx "${target}"
 		RETVAL=$?
 		if [ $RETVAL -eq 0 ]; then
 		    echo -e "${GOOD}OK${NORMAL} ${gray}RETVAL=$RETVAL${NORMAL}"
@@ -88,9 +90,10 @@ do
 	    TAB=${TAB%$fTAB}
 	fi
 
+	# begin linking...
 	echo -n "${TAB}link $link... "
 	TAB+=${fTAB:='   '}
-	# first, backup existing copy
+	# first, check for existing copy
 	if [ -L ${link} ] || [ -f ${link} ] || [ -d ${link} ]; then
 	    echo -n "exists and "
 	    if [[ "${target}" -ef ${link} ]]; then
@@ -101,13 +104,14 @@ do
 		TAB=${TAB%$fTAB}
 		continue
 	    else
+		# next, delete or backup existing copy
 		if [ $(diff -ebwB "${target}" ${link} | wc -c) -eq 0 ]; then
-		    echo "have the same contents"
+		    echo "has the same contents"
 		    echo -n "${TAB}deleting... "
 		    rm -v ${link}
 		else
-		    echo -n "will be backed up..."
-		    mv -v ${link} ${link}_$(date -r ${link} +'%Y-%m-%d-t%H%M')
+		    echo "will be backed up..."
+		    mv -v ${link} ${link}_$(date -r ${link} +'%Y-%m-%d-t%H%M') | sed "s/^/${TAB}/"
 		fi
 	    fi
 	else
@@ -130,5 +134,5 @@ echo -en "\n$(date +"%a %b %-d %-l:%M %p %Z") ${BASH_SOURCE##*/} "
 if command -v sec2elap &>/dev/null; then
     sec2elap ${SECONDS}
 else
-    echo "elapsed time is ${SECONDS} sec"
+    echo "elapsed time is ${white}${SECONDS} sec${NORMAL}"
 fi
