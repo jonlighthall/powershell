@@ -34,7 +34,7 @@ $proc = 'POWERPNT.EXE'
 Write-Host -NoNewline "$office_dir\$proc... "
 If (Test-Path -Path $office_dir\$proc ) {
     Write-Output "found"
-    $proc_name=[io.path]::GetFileNameWithoutExtension($proc)
+    $proc_name = [io.path]::GetFileNameWithoutExtension($proc)
 }
 else {
     Write-Output "not found"
@@ -60,11 +60,12 @@ Write-Host -NoNewline "$ppt_dir\$ppt_name... "
 if (Test-Path -Path  $ppt_dir\$ppt_name ) {
     Write-Output "found"
     # get PID
-    $ppt_pid2=$((Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"}).Id)
+    $ppt_pid2 = $((Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object { $_.mainWindowTitle -like "*$ppt_name*" }).Id)
     # test PID
     if ($ppt_pid2 -is [int]) {
         Write-Debug "ppt pid = $ppt_pid2 (int)"
-    } else {
+    }
+    else {
         Write-Debug "ppt pid = not int : assume not open"
     }
     if ($null -eq $ppt_pid2) {
@@ -75,7 +76,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
         Start-Process -WorkingDirectory $office_dir -FilePath .\$proc -ArgumentList "/S `"$ppt_dir\$ppt_name`""
 
         $open = $false
-        $finished=$false
+        $finished = $false
 
         # define file location
         $ps_dir = $("${HOME}\Documents\powershell")
@@ -88,7 +89,7 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
             # test file
             if (Test-Path -Path  $ps_dir\$ps_name ) {
                 Write-Output "found"
-                Start-Process -WorkingDirectory "${ps_dir}" powershell -ArgumentList {./blank_status.ps1}
+                Start-Process -WorkingDirectory "${ps_dir}" powershell -ArgumentList { ./blank_status.ps1 }
             }
             else {
                 Write-Output "not found"
@@ -99,49 +100,51 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
             Write-Output "not found"
             read-host "Press ENTER to continue..."
         }
-    } else {
+    }
+    else {
         Write-Debug "ppt pid = $ppt_pid2 (not null)"
-        $open=$true
+        $open = $true
         Write-Output "$ppt_name already open"
-        $finished=$true
+        $finished = $true
     }
     # check if open
     if ($open -eq $false) {
         Write-Host -NoNewline "  opening $ppt_name... "
         Write-Debug ""
-            while ($open -eq $false ) {
-                Write-Debug "still opening..."
-                $ppt_pid3=(Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object {$_.mainWindowTitle -like "*$ppt_name*"})
-                if (($ppt_pid3).Id -is [int]) {
-                    Write-Debug "  ppt pid = $(($ppt_pid3).Id)"
-                    $open=$true
-                    Start-Sleep -Milliseconds $loop_wait_ms
-                    $startCPU=($ppt_pid3).CPU[-1]
-                    Write-Debug "  starting CPU = $startCPU"
-                    $lastCPU=$startCPU
-                } else {
-                    Write-Debug "  ppt pid = null $(($ppt_pid3).Id)"
-                }
-                $elapsedTime = $(get-date) - $StartTime
-                Write-Debug "  elapsed time  = $elapsedTime"
+        while ($open -eq $false ) {
+            Write-Debug "still opening..."
+            $ppt_pid3 = (Get-Process $proc_name -ErrorAction SilentlyContinue | Where-Object { $_.mainWindowTitle -like "*$ppt_name*" })
+            if (($ppt_pid3).Id -is [int]) {
+                Write-Debug "  ppt pid = $(($ppt_pid3).Id)"
+                $open = $true
+                Start-Sleep -Milliseconds $loop_wait_ms
+                $startCPU = ($ppt_pid3).CPU[-1]
+                Write-Debug "  starting CPU = $startCPU"
+                $lastCPU = $startCPU
             }
+            else {
+                Write-Debug "  ppt pid = null $(($ppt_pid3).Id)"
+            }
+            $elapsedTime = $(get-date) - $StartTime
+            Write-Debug "  elapsed time  = $elapsedTime"
+        }
         Write-Output "opened, elapsed time  = $elapsedTime"
 
         Write-Host -NoNewline "  loading $ppt_name... "
         Write-Debug ""
         Write-Debug "open = $open"
-        $finished=$false
+        $finished = $false
         Write-Debug "finished = $finished"
 
         while (($finished -eq $false ) -and ($($elapsedTime.TotalSeconds) -lt 10)) {
             Write-Debug "still loading..."
             Start-Sleep -Milliseconds $loop_wait_ms
-            $tempCPU=($ppt_pid3).CPU[-1]
+            $tempCPU = ($ppt_pid3).CPU[-1]
             Write-Debug "  CPU = $tempCPU"
-            $absdiffcpu=$tempCPU-$startCPU
-            $reldiffcpu=($tempCPU/$startCPU)/100
+            $absdiffcpu = $tempCPU - $startCPU
+            $reldiffcpu = ($tempCPU / $startCPU) / 100
             Write-Debug "  CPU change = $absdiffcpu or $reldiffcpu%"
-            $dCPU=$tempCPU-$lastCPU
+            $dCPU = $tempCPU - $lastCPU
             Write-Debug "  dCPU = $dCPU"
             if ($dCPU -lt $dCPU_thresh) {
                 Write-Host "  dCPU < " $dCPU_thresh
@@ -151,14 +154,15 @@ if (Test-Path -Path  $ppt_dir\$ppt_name ) {
                 Write-Host "  dCPU > " $dCPU_thresh
             }
 
-            $lastCPU=$tempCPU
+            $lastCPU = $tempCPU
             Write-Debug "  CPU change is..."
             if (($absdiffcpu -gt $CPU_change) -and ($dCPU -lt $dCPU_thresh)) {
                 Write-Debug "    pass"
-                $finished=$true
-            } else {
+                $finished = $true
+            }
+            else {
                 Write-Debug "    fail"
-                        }
+            }
             $elapsedTime = $(get-date) - $StartTime
             Write-Debug "  elapsed time  = $elapsedTime"
             Write-Debug "  elapsed time  = $($elapsedTime.TotalSeconds) s"
