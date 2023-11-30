@@ -5,6 +5,11 @@
 # Must first run the following command before running this script
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 
+# print source name at start
+$src_path = Get-Location
+$src_name = $MyInvocation.MyCommand.Name
+Write-Host "running $src_path\$src_name..."
+
 ## Copy and link from OneDrive
 # PowerShell history
 

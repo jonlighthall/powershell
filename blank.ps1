@@ -4,6 +4,11 @@
 # Install-Module PowerShellGet -AllowClobber -Force -Scope CurrentUser
 # Install-Module -Name VirtualDesktop -Scope CurrentUser -Force
 
+# print source name at start
+$src_path = Get-Location
+$src_name = $MyInvocation.MyCommand.Name
+Write-Host "running $src_path\$src_name..."
+
 $env:PSModulePath = "${HOME}\Documents\WindowsPowerShell\Modules;" + $env:PSModulePath
 
 # settings
