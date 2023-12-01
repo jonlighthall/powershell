@@ -29,8 +29,6 @@ fi
 echo -n "connecting to powershell... "
 powershell.exe Write-Output "done"
 echo
-powershell.exe wsl -l -v | sed 's/^/   /'
-echo -e "\nshutting down wsl.exe...\n"
 
 # Check if the restart_wsl.ps1 script exists in the current directory
 if [ -f "restart_wsl.ps1" ]; then
