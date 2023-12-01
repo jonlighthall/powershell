@@ -29,3 +29,7 @@ fi
 echo -n "connecting to powershell... "
 powershell.exe 'Write-Output "done"; Write-Host "shutting down WSL..."'
 powershell.exe -Command "wsl --shutdown"
+
+# under Settings->Defaults->Advanced->Profile termination behavior, select Close
+# only when process exists successfully, then running this script will allow the
+# user to reset each terminal by pressing Enter
