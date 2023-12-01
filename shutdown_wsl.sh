@@ -31,4 +31,11 @@ powershell.exe Write-Output "done"
 echo
 powershell.exe wsl -l -v | sed 's/^/   /'
 echo -e "\nshutting down wsl.exe...\n"
-powershell.exe wsl --shutdown
+
+# Check if the restart_wsl.ps1 script exists in the current directory
+if [ -f "restart_wsl.ps1" ]; then
+    # Start PowerShell in a new terminal window and run the script
+    powershell.exe -NoExit -Command "Start-Process powershell.exe -ArgumentList '-NoExit','-Command','.\restart_wsl.ps1'"
+else
+    echo "restart_wsl.ps1 script not found in the current directory."
+fi
