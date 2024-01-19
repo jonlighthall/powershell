@@ -48,6 +48,7 @@ Write-Host "Do not exit while $msg is displayed."
 $counter = 0
 $txt = "All work and no play makes Jack a dull boy."
 
+try {
 while ($true) {
     if ($src_pid -gt 0) {
         $null = (New-Object -ComObject WScript.Shell).AppActivate($src_pid)
@@ -113,4 +114,8 @@ while ($true) {
     $this_wait = Get-Random -Minimum 0 -Maximum $loop_wait_ms
     $this_wait = $([int] $this_wait)    
     Start-Sleep -Milliseconds $this_wait
+}
+}
+finally {
+	Write-Host -NoNewLine "`a"
 }
