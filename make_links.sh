@@ -48,7 +48,7 @@ bar 38 "------ Start Linking Repo Files-------"
 
 # list of files to be linked
 ext=.sh
-for my_link in blank clicker shutdown_wsl; do
+for my_link in blank clicker wsl_shutdown; do
 	# define target (source)
 	target=${target_dir}/${my_link}${ext}
 	# define link (destination)
