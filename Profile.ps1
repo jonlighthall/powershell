@@ -2,3 +2,6 @@
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force -Verbose
 Write-Output "Weclome to $env:COMPUTERNAME"
 $env:PSModulePath = "${HOME}\Documents\WindowsPowerShell\Modules;" + $env:PSModulePath
+$scriptPath = Split-Path -Parent -Path $MyInvocation.MyCommand.Path
+write-host "Adding $scriptPath to PATH"
+$env:PATH = $scriptPath + ";" + $env:PATH
