@@ -1,5 +1,12 @@
-Get-ChildItem -Recurse | ForEach-Object {
-	$NewName = $_.Name -replace ' \(1\)', ''
-	if (-not ($_.name -eq $newname)) {
-		Rename-Item -Path $_.fullname -newname ($newName) 
-	} } -Verbose; Get-ChildItem '* (1).*' | Remove-Item -Verbose;
+$files = Get-ChildItem -Recurse | Where-Object { $_.Name -match ' \(2\)$' }
+
+foreach ($file in $files) {
+	$originalName = $file.Name -replace ' \(2\)$', ''
+	$originalFile = Get-ChildItem -Path $file.Directory.FullName | Where-Object { $_.Name -eq $originalName }
+
+	if ($originalFile -and $originalFile.Length -eq $file.Length) {
+		Remove-Item -Path $file.FullName -Verbose
+	} elseif (-not $originalFile) {
+		Rename-Item -Path $file.FullName -NewName $originalName -Verbose
+	}
+}
