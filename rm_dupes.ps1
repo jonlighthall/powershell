@@ -1,19 +1,21 @@
 $files = Get-ChildItem -Recurse | Where-Object { $_.Name -match "\(2\)" }
 
-foreach ($file in $files) {
-	Write-Host " input file name: $file"
-	$originalName = $file.Name -replace ' \(2\)', ''
-	Write-Host "output file name: $originalName"
+foreach ($inFile in $files) {
+	$inPath = $inFile.DirectoryName
+    $inFileDir = Split-Path -Leaf $inPath
+	$inFileName = Join-Path -Path $inFileDir -ChildPath $inFile
+    Write-Host "$inFileName"
 
-	Write-Host " input file:" $file.FullName
-	$outFileName= Join-Path -Path $file.Directory.FullName -ChildPath $originalName
-	Write-Host "output file: $outFileName... " -NoNewline
+	$outFile = $inFile.Name -replace ' \(2\)', ''
+	$outFileName = Join-Path -Path $inFileDir -ChildPath $outFile
+	Write-Host "$outFileName... " -NoNewline
+	$outFileName= Join-Path -Path $inFile.Directory.FullName -ChildPath $outFile
 
 	if (Test-Path -Path $outFileName -PathType Leaf) {
 		Write-Host "already exists, " -ForegroundColor Red -NoNewline
-		if ($originalFile.Length -eq $file.Length) {
+		if ($originalFile.Length -eq $inFile.Length) {
 			write-host "files have same length" -ForegroundColor Yellow
-			Remove-Item -Path $file.FullName -Verbose
+			Remove-Item -Path $inFile.FullName -Verbose
 		}
 		else {
 			write-host "files have different lengths" -ForegroundColor Red
@@ -21,6 +23,6 @@ foreach ($file in $files) {
 	}
 	else {
 		write-host "$originalFile does not exist" -ForegroundColor Green
-		Move-Item -Path $file.FullName -Destination $outFileName -Verbose
+		Move-Item -Path $inFile.FullName -Destination $outFileName -Verbose
 	}
 }
