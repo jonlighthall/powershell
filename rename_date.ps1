@@ -1,26 +1,24 @@
 $Shell = New-Object -ComObject shell.application
 
+$DirectoryName = $_.DirectoryName
+Write-Host "Directory Name: $DirectoryName"
+
 # Iterate through each file
-Get-ChildItem -Recurse -file *.jpg,*jpeg,*.mp4,*.mov,*.heic -ErrorAction Stop | ForEach{
+Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Stop | ForEach {
     Write-host
     
-    Write-Output "checking $_.Name"
+    $inFileName = $_.Name
+    write-host "File Name: $inFileName"
     
-    
-    
-    
-    
-
     $Folder = $Shell.NameSpace($_.DirectoryName)
-    $File = $Folder.ParseName($_.Name)
-    
+    $File = $Folder.ParseName($_.Name)    
 
     # Find the available property
-    $Property = $Folder.GetDetailsOf($File,12)
+    $Property = $Folder.GetDetailsOf($File, 12)
     if (-not $Property) {
-        $Property = $Folder.GetDetailsOf($File,3)
+        $Property = $Folder.GetDetailsOf($File, 3)
         if (-not $Property) {
-            $Property = $Folder.GetDetailsOf($File,4)
+            $Property = $Folder.GetDetailsOf($File, 4)
         }
     }
 
@@ -29,40 +27,87 @@ Get-ChildItem -Recurse -file *.jpg,*jpeg,*.mp4,*.mov,*.heic -ErrorAction Stop | 
     $DateTime = [DateTime]::Parse($RawDate)
     $DateTaken = $DateTime.ToString("yyyyMMdd_HHmm")
     $DateTaken2 = $DateTime.ToString("yyyy-MM-dd")
+    
     write-host $DateTaken2
     
-    $inPath = $_.DirectoryName 
+    $inPath = $_.DirectoryName     
+    $parentDirectory = Split-Path -Parent $inPath        
+    $outPath = Join-Path -Path $parentDirectory -ChildPath $DateTaken2           
     
-    $parentDirectory = Split-Path -Parent $inPath    
+    write-host $inPath
+    write-host $outPath
     
-    $outPath = $parentDirectory + "\" + $DateTaken2
+    # Check if inPath and outPath are the same
+    if ($inPath -eq $outPath) {
+        Write-Output "inPath and outPath are the same"
+    }
+    else {
+        Write-Output "inPath and outPath are different"
+        
+        
+        
+        
+        
+        
+        $outFileName = Join-Path -Path $outPath -ChildPath $inFileName        
+        
+        Write-Host $inFileName
+        Write-Host $outFileName
+        
+        Write-Output "Moving $_ to $outFileName"   
+        
+        
+        # Check if outFileName exists
+        if (Test-Path -Path $outFileName -PathType Leaf) {
+            Write-Output "outFileName already exists"
+            # Check if outFileName exists
+            if (Test-Path -Path $outFileName -PathType Leaf) {
+                Write-Output "outFileName already exists"
+        
+                $Iterator = 1
+
+                # Find the available file name
+                $outFileNameNew = $outFileName + "_" + $Iterator
+                $Path = $_.DirectoryName + "\" + $outFileNameNew + $_.Extension
+                while (Test-Path -Path $Path -PathType Leaf) {
+                    $Iterator = $Iterator + 1
+                    $outFileNameNew = $DateTaken + "_" + $Iterator
+                    $Path = $_.DirectoryName + "\" + $outFileNameNew
+                    + $_.Extension
+                }
+
+                $outFileNameNewPath = $Path
+                Write-Output "New unique file name: $outFileNameNewPath"
+                Move-Item -Path $_ -Destination $outFileNameNewPath -Verbose
+            }
     
-    write-host $inPath $outPath
-    
-# Check if inPath and outPath are the same
-if ($inPath -eq $outPath) {
-    Write-Output "inPath and outPath are the same"
-} else {
-    Write-Output "inPath and outPath are different"
-    Write-Output "Moving $_.Name to $outPath"
-    
-    #Move-Item -Path $inPath -Destination $outPath -Verbose
-}
     
     
+        }
+        else {
+            Write-Output "outFileName does not exist"
+            Move-Item -Path $_ -Destination $outFileName -Verbose
+        }
+        
+        
+        
+    }
+    
+    $Iterator = 1
 
     # Find the available file name
-    $FileName = $DateTaken + "_" + $Iterator
-    $Path = $_.DirectoryName + "\" + $FileName + $_.Extension
+    $outFileNameNe = $DateTaken + "_" + $Iterator
+    $outFileNameNe = $DateTaken
+    $Path = $_.DirectoryName + "\" + $outFileNameNe + $_.Extension
     while (Test-Path -Path $Path -PathType Leaf) {
         $Iterator = $Iterator + 1
-        $FileName = $DateTaken + "_" + $Iterator
-        $Path = $_.DirectoryName + "\" + $FileName + $_.Extension
+        $outFileNameNew = $DateTaken + "_" + $Iterator
+        $Path = $_.DirectoryName + "\" + $outFileNameNew + $_.Extension
     }
 
     # Rename file
-    Write-Output $_.Name"=>"$FileName
-    #Rename-Item $_.FullName ($FileName + $_.Extension)
+    Write-Output $_.Name"=>"$outFileNameNe
+    #Rename-Item $_.FullName ($outFileNameNe + $_.Extension)
 }
 
 # You can run this script using the following command
