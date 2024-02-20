@@ -4,11 +4,9 @@ $DirectoryName = $_.DirectoryName
 Write-Host "Directory Name: $DirectoryName"
 
 # Iterate through each file
-Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Stop | ForEach-Object {
-    Write-host
-    
+Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Stop | ForEach-Object {    
     $inFileName = $_.Name
-    write-host "File Name: $inFileName"
+    Write-Host "$inFileName"
     
     $Folder = $Shell.NameSpace($_.DirectoryName)
     $File = $Folder.ParseName($_.Name)    
@@ -27,21 +25,15 @@ Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Sto
     $DateTime = [DateTime]::Parse($RawDate)    
     $DateTaken2 = $DateTime.ToString("yyyy-MM-dd")
     
-    #write-host $DateTaken2
-    
+    # Define output directory based on date taken
     $inPath = $_.DirectoryName     
     $parentDirectory = Split-Path -Parent $inPath        
     $outPath = Join-Path -Path $parentDirectory -ChildPath $DateTaken2           
     
-    write-host $inPath
-    write-host $outPath
-    
     # Check if inPath and outPath are the same
-    if ($inPath -eq $outPath) {
-     #   Write-Output "inPath and outPath are the same"
-    }
-    else {
-        Write-Output "inPath and outPath are different"
+    if ( -not ($inPath -eq $outPath)) {        
+        write-host $inPath
+        write-host $outPath
         
         # Check if outPath exists, and if not, create the directory
         if (-not (Test-Path -Path $outPath -PathType Container)) {
