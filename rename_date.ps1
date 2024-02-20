@@ -4,7 +4,7 @@ $DirectoryName = $_.DirectoryName
 Write-Host "Directory Name: $DirectoryName"
 
 # Iterate through each file
-Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Stop | ForEach {
+Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Stop | ForEach-Object {
     Write-host
     
     $inFileName = $_.Name
@@ -24,11 +24,10 @@ Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Sto
 
     # Get date in the required format as a string
     $RawDate = ($Property -Replace "[^\w /:]")
-    $DateTime = [DateTime]::Parse($RawDate)
-    $DateTaken = $DateTime.ToString("yyyyMMdd_HHmm")
+    $DateTime = [DateTime]::Parse($RawDate)    
     $DateTaken2 = $DateTime.ToString("yyyy-MM-dd")
     
-    write-host $DateTaken2
+    #write-host $DateTaken2
     
     $inPath = $_.DirectoryName     
     $parentDirectory = Split-Path -Parent $inPath        
@@ -39,23 +38,19 @@ Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Sto
     
     # Check if inPath and outPath are the same
     if ($inPath -eq $outPath) {
-        Write-Output "inPath and outPath are the same"
+     #   Write-Output "inPath and outPath are the same"
     }
     else {
         Write-Output "inPath and outPath are different"
         
-        
-        
-        
-        
-        
+        # Check if outPath exists, and if not, create the directory
+        if (-not (Test-Path -Path $outPath -PathType Container)) {
+            New-Item -ItemType Directory -Path $outPath -Verbose
+        }        
         $outFileName = Join-Path -Path $outPath -ChildPath $inFileName        
-        
         Write-Host $inFileName
-        Write-Host $outFileName
-        
+        Write-Host $outFileName        
         Write-Output "Moving $_ to $outFileName"   
-        
         
         # Check if outFileName exists
         if (Test-Path -Path $outFileName -PathType Leaf) {
@@ -63,10 +58,8 @@ Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Sto
             # Check if outFileName exists
             if (Test-Path -Path $outFileName -PathType Leaf) {
                 Write-Output "outFileName already exists"
-        
-                $Iterator = 1
-
                 # Find the available file name
+                $Iterator = 1
                 $outFileNameNew = $outFileName + "_" + $Iterator
                 $Path = $_.DirectoryName + "\" + $outFileNameNew + $_.Extension
                 while (Test-Path -Path $Path -PathType Leaf) {
@@ -75,40 +68,19 @@ Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Sto
                     $Path = $_.DirectoryName + "\" + $outFileNameNew
                     + $_.Extension
                 }
-
+                # Move the file to the new unique file name
                 $outFileNameNewPath = $Path
                 Write-Output "New unique file name: $outFileNameNewPath"
                 Move-Item -Path $_ -Destination $outFileNameNewPath -Verbose
             }
-    
-    
-    
         }
         else {
             Write-Output "outFileName does not exist"
             Move-Item -Path $_ -Destination $outFileName -Verbose
         }
-        
-        
-        
     }
-    
-    $Iterator = 1
-
-    # Find the available file name
-    $outFileNameNe = $DateTaken + "_" + $Iterator
-    $outFileNameNe = $DateTaken
-    $Path = $_.DirectoryName + "\" + $outFileNameNe + $_.Extension
-    while (Test-Path -Path $Path -PathType Leaf) {
-        $Iterator = $Iterator + 1
-        $outFileNameNew = $DateTaken + "_" + $Iterator
-        $Path = $_.DirectoryName + "\" + $outFileNameNew + $_.Extension
-    }
-
-    # Rename file
-    Write-Output $_.Name"=>"$outFileNameNe
-    #Rename-Item $_.FullName ($outFileNameNe + $_.Extension)
 }
+Write-Output "Done"
 
 # You can run this script using the following command
 # .\rename.ps1 -ErrorAction Stop
