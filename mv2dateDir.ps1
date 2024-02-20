@@ -1,3 +1,5 @@
+$ErrorActionPreference = "Stop"
+
 $Shell = New-Object -ComObject shell.application
 
 # Iterate through each file
@@ -40,25 +42,30 @@ Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Sto
 
         # Check if outPath exists, and if not, create the directory
         if (-not (Test-Path -Path $outPath -PathType Container)) {
+            write-host
+            write-host "   $outPath does not exist" # This is the directory where the file will be moved to
             New-Item -ItemType Directory -Path $outPath -Verbose
         }
-        $outFileName = Join-Path -Path $outPath -ChildPath $inFile
+        $outFilePath = Join-Path -Path $outPath -ChildPath $inFile
+
+        write-host "   $outFilePath..." -NoNewline # full path to the output file
 
         # Check if outFileName exists
-        if (Test-Path -Path $outFileName -PathType Leaf) {
-            Write-Output "outFileName already exists"
+        if (Test-Path -Path $outFilePath -PathType Leaf) {
+            Write-Output "already exists" -ForegroundColor Red
             # Find the available file name
             $Iterator = 1
-            $outFileNameNew = $outFileName + "_" + $Iterator
-            $Path = $_.DirectoryName + "\" + $outFileNameNew + $_.Extension
-            while (Test-Path -Path $Path -PathType Leaf) {
+            $outFileNameNew = $outFileName + "_" + $Iterator + $_.Extension
+            write-host "$outFileNameNew" -ForegroundColor Yellow
+            $testPath = Join-Path -Path $parentDirectory -ChildPath $outFileNameNew
+            write-host "$testPath" -ForegroundColor Yellow
+            while (Test-Path -Path $testPath -PathType Leaf) {
                 $Iterator = $Iterator + 1
-                $outFileNameNew = $DateTaken + "_" + $Iterator
-                $Path = $_.DirectoryName + "\" + $outFileNameNew
-                + $_.Extension
+                $outFileNameNew = $outFileName + "_" + $Iterator + $_.Extension
+                $testPath = Join-Path -Path $parentDirectory -ChildPath $outFileNameNew
             }
             # Move the file to the new unique file name
-            $outFileNameNewPath = $Path
+            $outFileNameNewPath = $testPath
             Write-Output "New unique file name: $outFileNameNewPath"
             Move-Item -Path $_ -Destination $outFileNameNewPath -Verbose
         }
