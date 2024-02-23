@@ -63,10 +63,6 @@ Get-ChildItem -Recurse -file *.jpg, *jpeg, *.mp4, *.mov, *.heic -ErrorAction Sto
         write-host " MOVE" -ForegroundColor Red
         $outFileDir = Split-Path -Leaf $outPath
         $outFileName = Join-Path -Path $outFileDir -ChildPath $inFile
-        write-host "out file name $outFileName... " -ForegroundColor Yellow # date dir and file name
-        write-host "out path $outPath... " -ForegroundColor Yellow # path to new directory
-
-        Test-Path -Path $outPath
 
         # Check if outPath exists, and if not, create the directory
         if (-not (Test-Path -Path $outPath)) {
