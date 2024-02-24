@@ -27,10 +27,10 @@ if [ -f $hist_file ]; then
     echo "#$(date +'%s') SHUTDN $(date +'%a %b %d %Y %R:%S %Z') from $(hostname -s)" >>$hist_file
 fi
 echo -n "connecting to powershell... "
-powershell.exe 'Write-Output "done`n"'
-powershell.exe -Command "wsl --list --verbose"
-powershell.exe 'Write-Host "`nshutting down WSL..."'
-powershell.exe -Command "wsl --shutdown"
+powershell.exe -NonInteractive 'Write-Output "done`n"'
+powershell.exe -NonInteractive -Command "wsl --list --verbose"
+powershell.exe -NonInteractive 'Write-Host "`nshutting down WSL..."'
+powershell.exe -NonInteractive -Command "wsl --shutdown"
 
 # under Settings->Defaults->Advanced->Profile termination behavior, select Close
 # only when process exists successfully, then running this script will allow the
