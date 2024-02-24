@@ -33,8 +33,8 @@ if ($env:PSModulePath -like "*$modulePath*" -and $bInt -eq $true) {
 }
 else {
     if ($bInt -eq $true) {
-        Write-Output "$TAB$modulePath is not in PSModulePath"
-        write-host "$TABprepending $modulePath to PSModulePath..."
+        Write-Output "${TAB}$modulePath is not in PSModulePath"
+        write-host "${TAB}${TAB}prepending $modulePath to PSModulePath..."
     }
     $env:PSModulePath = "$modulePath;" + $env:PSModulePath
 }
@@ -42,12 +42,12 @@ else {
 # Add the script path to PATH
 $scriptPath = Split-Path -Parent -Path $MyInvocation.MyCommand.Path
 if ($env:PATH -like "*$scriptPath*" -and $bInt -eq $true) {
-    Write-Output "$TAB$scriptPath is in PATH"
+    Write-Output "${TAB}$scriptPath is in PATH"
 }
 else {
     if ($bInt -eq $true) {
-        Write-Output "$TAB$scriptPath is not in PATH"
-        write-host "$TABprepending $scriptPath to PATH"
+        Write-Output "${TAB}$scriptPath is not in PATH"
+        write-host "${TAB}${TAB}prepending $scriptPath to PATH"
     }
     $env:PATH = $scriptPath + ";" + $env:PATH
 }
