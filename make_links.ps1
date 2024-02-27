@@ -1,11 +1,16 @@
 # this is a PowerShell script
 
-# Must run in elevated prompt to make link
-
 # Must first run the following command before running this script
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process
 
+# Must run in elevated prompt to make link
+
+
+# set execution preferences
 $ErrorActionPreference = "Stop"
+
+# set tab
+$TAB="   "
 
 # print source name at start
 $src_path = Get-Location
@@ -14,8 +19,7 @@ Write-Host "running " -NoNewline
 Write-Host "$src_path\$src_name" -NoNewline -ForegroundColor Yellow
 Write-Host "..."
 
-## Copy and link from OneDrive
-# PowerShell history
+## Copy and link PowerShell history from OneDrive
 
 # define target (source)
 # specify the path to the shared history file in OneDrive
@@ -26,8 +30,6 @@ $target = (Get-Item $cloud)
 # specify the path to the Console Host history file
 $local = 'C:\Users\jonli\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt'
 $link = (Get-Item $local)
-
-$TAB="   "
 
 # check if the source file exists
 Write-Host "test cloud history..."
@@ -41,21 +43,25 @@ else {
 	exit 1
 }
 
+# check if local file exists
 Write-Host "test local history..."
 $do_append = $false
 if (Test-Path -Path $local) {
 	Write-Host "${TAB}$local found"
+	# if the local file exists, append the cloud history to it
 	$do_append = $true
 
+	# check if the local file is a link
 	Write-Host "${TAB}$link is... " -NoNewline
 	$do_link = $false
-
 	if ($link.LinkType -eq "SymbolicLink") {
 		Write-Host "a link "
 		Write-Host "${TAB}and points to... " -NoNewline
 		$linkTarget = (Get-Item -Path $local).Target
 		if ($linkTarget -eq $cloud) {
 			Write-Host "$cloud"
+			# if the local file already points to the cloud file, do not append,
+			# do not link
 			$do_append = $false
 		}
 		else {
@@ -124,7 +130,6 @@ if (Test-Path -Path $PROFILE.CurrentUserCurrentHost) {
 		$fname = [io.path]::GetFileNameWithoutExtension($cuch_profile)
 		$ext = [io.path]::GetExtension($cuch_profile)
 		Move-Item -v $cuch_profile $dir\${fname}_$(get-date -f yyyy-MM-dd-hhmm)$ext
-
 }
 else {
 	Write-Host "does not exist"
@@ -133,17 +138,15 @@ else {
 $myProfile = Join-Path -Path $src_path -ChildPath "Profile.ps1"
 
 if (Test-Path -Path $myProfile) {
-	Write-Host "${TAB}${TAB}copying profile"
+	Write-Host "${TAB}${TAB}linking profile..."
 
-	New-Item -ItemType SymbolicLink -Path $cuch_profile -Target $myProfile
+Start-Process powershell.exe -Verb RunAs -ArgumentList "New-Item -Verbose -ItemType SymbolicLink -Path $cuch_profile -Target $myProfile"
 }
 else {
 	Write-Host "${TAB}${TAB}profile not found" -ForegroundColor Red
 	Write-Host "${TAB}${TAB}no profile to link to`nexiting"
 	exit 1
 }
-
-Write-Host "Linking profile... "
 
 write-host "done linking profile"
 
