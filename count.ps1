@@ -7,5 +7,5 @@ $src_name = $MyInvocation.MyCommand.Name
 Write-Host "running $src_path\$src_name..."
 
 for ($i = 1; $i -le 1000; $i++) {
-    Write-Host $i
+  Write-Host $i
 }
