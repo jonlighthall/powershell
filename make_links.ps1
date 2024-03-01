@@ -10,7 +10,7 @@
 $ErrorActionPreference = "Stop"
 
 # set tab
-$TAB="   "
+$TAB = "   "
 
 # print source name at start
 $src_path = Get-Location
@@ -23,13 +23,12 @@ Write-Host "..."
 
 # define target (source)
 # specify the path to the shared history file in OneDrive
-$cloud = 'C:\Users\jonli\OneDrive\Documents\ConsoleHost_history.txt'
+$cloud = "$env:OneDrive\Documents\ConsoleHost_history.txt"
 $target = (Get-Item $cloud)
 
 # define link (destination)
 # specify the path to the Console Host history file
-$local = 'C:\Users\jonli\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt'
-$link = (Get-Item $local)
+$local = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"$link = (Get-Item $local)
 
 # check if the source file exists
 Write-Host "test cloud history..."
@@ -118,7 +117,7 @@ $PROFILE | Format-List -Force
 
 Write-Host "Current profile: ......... $profile"
 write-host "Current user current host: " -noNewline
-$cuch_profile=$PROFILE.CurrentUserCurrentHost
+$cuch_profile = $PROFILE.CurrentUserCurrentHost
 $cuch_profile
 
 Write-Host "Current profile... " -NoNewline
@@ -126,10 +125,10 @@ if (Test-Path -Path $PROFILE.CurrentUserCurrentHost) {
 	Write-Host "exists"
 
 	Write-Host "${TAB}${TAB}renaming local copy"
-		$dir = [io.path]::GetDirectoryName($cuch_profile)
-		$fname = [io.path]::GetFileNameWithoutExtension($cuch_profile)
-		$ext = [io.path]::GetExtension($cuch_profile)
-		Move-Item -v $cuch_profile $dir\${fname}_$(get-date -f yyyy-MM-dd-hhmm)$ext
+	$dir = [io.path]::GetDirectoryName($cuch_profile)
+	$fname = [io.path]::GetFileNameWithoutExtension($cuch_profile)
+	$ext = [io.path]::GetExtension($cuch_profile)
+	Move-Item -v $cuch_profile $dir\${fname}_$(get-date -f yyyy-MM-dd-hhmm)$ext
 }
 else {
 	Write-Host "does not exist"
@@ -140,7 +139,7 @@ $myProfile = Join-Path -Path $src_path -ChildPath "Profile.ps1"
 if (Test-Path -Path $myProfile) {
 	Write-Host "${TAB}${TAB}linking profile..."
 
-Start-Process powershell.exe -Verb RunAs -ArgumentList "New-Item -Verbose -ItemType SymbolicLink -Path $cuch_profile -Target $myProfile"
+	Start-Process powershell.exe -Verb RunAs -ArgumentList "New-Item -Verbose -ItemType SymbolicLink -Path $cuch_profile -Target $myProfile"
 }
 else {
 	Write-Host "${TAB}${TAB}profile not found" -ForegroundColor Red
