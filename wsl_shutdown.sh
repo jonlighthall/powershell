@@ -20,7 +20,7 @@ if [ ! "$BASH_SOURCE" = "$src_name" ]; then
 fi
 
 # get source directory
-source_dir=$(dirname $src_name)
+source_dir=$(dirname "$src_name")
 cd $source_dir
 echo
 hist_file=${HOME}/.bash_history
