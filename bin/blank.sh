@@ -24,4 +24,4 @@ source_dir=$(dirname "$src_name")
 cd $source_dir
 echo -n "connecting to powershell... "
 powershell.exe -NonInteractive 'Write-Output "done"'
-powershell.exe -File ./blank.ps1
+powershell.exe -File ../blank.ps1

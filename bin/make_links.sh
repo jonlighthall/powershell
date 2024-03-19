@@ -4,10 +4,11 @@
 start_time=$(date +%s%N)
 
 utils_dir="${HOME}/utils"
+config_dir="${HOME}/config"
 bash_utils_dir="${utils_dir}/bash"
 
 # load formatting
-fpretty="${bash_utils_dir}/.bashrc_pretty"
+fpretty="${config_dir}/.bashrc_pretty"
 if [ -e "$fpretty" ]; then
     source "$fpretty"
     set_traps
@@ -32,8 +33,22 @@ fi
 
 # set target and link directories
 src_dir_logi=$(dirname "$src_name")
+echo "source dir: $src_dir_logi"
 proj_name=$(basename "$src_dir_logi")
-target_dir="${utils_dir}/${proj_name}"
+echo "proj dir: $proj_name"
+if [[ "${proj_name}" == "bin" ]]; then
+
+    proj_name=$(basename $(dirname "$src_dir_logi"))
+    bin_dir=$proj_name/bin
+    echo "bin dir: $bin_dir"
+    echo "proj dir: $proj_name"
+    target_dir="${utils_dir}/${bin_dir}"
+else
+    target_dir="${utils_dir}/${proj_name}"
+fi
+   
+
+echo "target dir: $target_dir"
 link_dir=$HOME/bin
 
 # check directories
