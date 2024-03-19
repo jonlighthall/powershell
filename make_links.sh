@@ -15,12 +15,6 @@ if [ -e "$fpretty" ]; then
     rtab
 fi
 
-# load linking scripts
-flink="${bash_utils_dir}/.bash_links"
-if [ -e "$flink" ]; then
-    source "$flink"
-fi
-
 # determine if script is being sourced or executed
 if (return 0 2>/dev/null); then
     RUN_TYPE="sourcing"
