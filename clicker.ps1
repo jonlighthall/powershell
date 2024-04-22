@@ -58,19 +58,32 @@ try {
       $do_text = $false
     }
     if ($counter -gt 0) {
-      Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"
-      if ($do_text) {
+    # print wait message
+    Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"
+
+    # type text message
+    if ($do_text) {
         $WShell.sendkeys("$txt")
       }
+
+      # loop over blinks_per_loop, twice
+      # for each blink loop
+      #   * loop over keys and send each key
+      #   * wait for blink interval
+      #   * loop over kesy again and send each key (resetting status)
       for ($j = 0; $j -lt ($blinks_per_loop * 2); $j++) {
+      # loop over keys
         for ($i = 0; $i -lt $nkeys; $i++) {
           $WShell.sendkeys($($keys[$i]))
         }
+        # wait
         Start-Sleep -Milliseconds $blink_wait_ms
       }
 
+      # clear text message
       if ($do_text) {
         #Start-Sleep -Milliseconds 500
+        # send the backspace key a number of times equal to the length of the text message
         $WShell.sendkeys($("{BS}" * $txt.Length))
       }
       # clear wait message
@@ -84,9 +97,12 @@ try {
       $host.UI.RawUI.CursorPosition = $cur_pos
     }
 
+    # after ndots number of loops, print the elapsed time
     if (($counter % $ndots) -eq 0) {
       if ($counter -gt 0) {
+        # define elapsed time      
         $elapsedTime = $(get-date) - $StartTime
+        # format elapsed time
         if ($elapsedTime.TotalSeconds -lt 1) {
           Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"
         }
@@ -99,6 +115,8 @@ try {
         else {
           Write-Host " elapsed time = $("{0:n1}" -f $($elapsedTime.TotalHours)) hr"
         }
+
+        # exit after 10 hours
         if ($elapsedTime.TotalHours -ge 10) {
           $cur_pos = $host.UI.RawUI.CursorPosition
           $cur_pos.X = 16 - 3
@@ -116,6 +134,7 @@ try {
     Start-Sleep -Milliseconds $this_wait
   }
 }
+# beep and reset window title on exit
 finally {
   Write-Host -NoNewLine "`a"
   $host.ui.RawUI.WindowTitle = "Ubuntu"
