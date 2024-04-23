@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # load formatting
 fpretty=${HOME}/config/.bashrc_pretty
 if [ -e $fpretty ]; then
@@ -13,11 +14,7 @@ else
     RUN_TYPE="executing"
     set -e
 fi
-echo "${TAB}${RUN_TYPE} $BASH_SOURCE..."
-src_name=$(readlink -f $BASH_SOURCE)
-if [ ! "$BASH_SOURCE" = "$src_name" ]; then
-    echo -e "${TAB}${VALID}link${RESET} -> $src_name"
-fi
+print_source
 
 # get source directory
 source_dir=$(dirname "$src_name")

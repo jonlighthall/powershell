@@ -1,12 +1,10 @@
 #!/bin/bash
 
-# set tab
-TAB=${TAB:=''}
-
 # load formatting
 fpretty=${HOME}/config/.bashrc_pretty
 if [ -e $fpretty ]; then
-  source $fpretty
+    source $fpretty
+    rtab
 fi
 
 # print source name at start
