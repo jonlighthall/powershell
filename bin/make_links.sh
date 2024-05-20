@@ -12,8 +12,6 @@ fpretty="${config_dir}/.bashrc_pretty"
 if [ -e "$fpretty" ]; then
     source "$fpretty"
     set_traps
-    # reset tab
-    rtab
 fi
 
 # determine if script is being sourced or executed
