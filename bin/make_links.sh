@@ -7,7 +7,7 @@ utils_dir="${HOME}/utils"
 config_dir="${HOME}/config"
 bash_utils_dir="${utils_dir}/bash"
 
-# load formatting
+# load bash utilities
 fpretty="${config_dir}/.bashrc_pretty"
 if [ -e "$fpretty" ]; then
     source "$fpretty"
