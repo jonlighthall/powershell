@@ -1,4 +1,6 @@
 #!/bin/bash -u
+#
+# Mar 2023 JCL
 
 # get starting time in nanoseconds
 start_time=$(date +%s%N)
