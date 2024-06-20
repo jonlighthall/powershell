@@ -47,22 +47,23 @@ $msg = "WAIT"
 Write-Host "Do not exit while $msg is displayed."
 $counter = 0
 $txt = "All work and no play makes Jack a dull boy."
+$do_text = $true
 
 try {
     while ($true) {
         if ($src_pid -gt 0) {
             $null = (New-Object -ComObject WScript.Shell).AppActivate($src_pid)
-            $do_text = $true
+            $pid_ok = $true
         }
         else {
-            $do_text = $false
+            $pid_ok = $false
         }
         if ($counter -gt 0) {
             # print wait message
             Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"
 
             # type text message
-            if ($do_text) {
+            if ($do_text && $pid_ok) {
                 $WShell.sendkeys("$txt")
             }
 
@@ -81,7 +82,7 @@ try {
             }
 
             # clear text message
-            if ($do_text) {
+            if ($do_text && $pid_ok) {
                 #Start-Sleep -Milliseconds 500
                 # send the backspace key a number of times equal to the length of the text message
                 $WShell.sendkeys($("{BS}" * $txt.Length))
