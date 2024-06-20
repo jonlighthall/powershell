@@ -67,7 +67,7 @@ try {
             Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"
 
             # type text message
-            if ($do_text && $pid_ok) {
+            if ($do_text -and $pid_ok) {
                 $WShell.sendkeys("$txt")
             }
 
@@ -86,7 +86,7 @@ try {
             }
 
             # clear text message
-            if ($do_text && $pid_ok) {
+            if ($do_text -and $pid_ok) {
                 #Start-Sleep -Milliseconds 500
                 # send the backspace key a number of times equal to the length of the text message
                 $WShell.sendkeys($("{BS}" * $txt.Length))
