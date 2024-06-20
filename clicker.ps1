@@ -31,7 +31,10 @@ $blinks_per_loop = 2
 # clicker settings
 $keys = @("{CAPSLOCK}", "{SCROLLLOCK}", "{NUMLOCK}")
 $nkeys = $keys.Length
-$WShell = New-Object -ComObject Wscript.Shell
+$key_max = 1
+$key_lim = [Math]::Min($nkeys, $key_max)
+$txt = "All work and no play makes Jack a dull boy."
+$do_text = $true
 
 # print settings
 $line_lim = 10
@@ -46,8 +49,7 @@ Write-Host "Press Ctrl-C to exit."
 $msg = "WAIT"
 Write-Host "Do not exit while $msg is displayed."
 $counter = 0
-$txt = "All work and no play makes Jack a dull boy."
-$do_text = $true
+$WShell = New-Object -ComObject Wscript.Shell
 
 try {
     while ($true) {
@@ -74,7 +76,7 @@ try {
             #   * loop over kesy again and send each key (resetting status)
             for ($j = 0; $j -lt ($blinks_per_loop * 2); $j++) {
                 # loop over keys
-                for ($i = 0; $i -lt $nkeys; $i++) {
+                for ($i = 0; $i -lt $key_lim; $i++) {
                     $WShell.sendkeys($($keys[$i]))
                 }
                 # wait
