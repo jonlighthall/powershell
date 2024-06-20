@@ -1,3 +1,5 @@
+# Feb 2024 JCL
+
 $ErrorActionPreference = "Stop"
 
 $Shell = New-Object -ComObject shell.application

@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Mar 2023 JCL
 
 # load bash utilities
 fpretty=${HOME}/config/.bashrc_pretty
