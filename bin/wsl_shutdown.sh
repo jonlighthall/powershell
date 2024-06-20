@@ -7,10 +7,7 @@ if [ -e $fpretty ]; then
 fi
 
 # print source name at start
-if (return 0 2>/dev/null); then
-    RUN_TYPE="sourcing"
-else
-    RUN_TYPE="executing"
+if ! (return 0 2>/dev/null); then
     set -e
 fi
 echo "${TAB}${RUN_TYPE} $BASH_SOURCE..."

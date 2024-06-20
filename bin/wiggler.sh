@@ -5,15 +5,8 @@ fpretty=${HOME}/config/.bashrc_pretty
 if [ -e $fpretty ]; then
     source $fpretty
     rtab
+    print_source
 fi
-
-# print source name at start
-if (return 0 2>/dev/null); then
-    RUN_TYPE="sourcing"
-else
-    RUN_TYPE="executing"
-fi
-print_source
 
 # get source directory
 source_dir=$(dirname "$src_name")
