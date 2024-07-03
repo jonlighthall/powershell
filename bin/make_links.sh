@@ -34,25 +34,11 @@ if [[ "${proj_name}" == "bin" ]]; then
 else
     target_dir="${utils_dir}/${proj_name}"
 fi
-echo "target dir: $target_dir"
 link_dir=$HOME/bin
 
 # check directories
-echo -n "target directory ${target_dir}... "
-if [ -d "$target_dir" ]; then
-    echo "exists"
-else
-    echo -e "${BAD}does not exist${RESET}"
-    exit 1
-fi
-
-echo -n "link directory ${link_dir}... "
-if [ -d "$link_dir" ]; then
-    echo "exists"
-else
-    echo "does not exist"
-    mkdir -pv "$link_dir"
-fi
+check_target "${target_dir}"
+do_make_dir "$link_dir"
 
 cbar "Start Linking Repo Files"
 # list of files to be linked
