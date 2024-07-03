@@ -36,7 +36,7 @@ $nkeys = $keys.Length
 $key_max = 1
 $key_lim = [Math]::Min($nkeys, $key_max)
 $txt = "All work and no play makes Jack a dull boy."
-$do_text = $true
+$do_text = $false
 
 # print settings
 $line_lim = 10
