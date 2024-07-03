@@ -6,6 +6,14 @@ $src_path = Get-Location
 $src_name = $MyInvocation.MyCommand.Name
 Write-Host "running $src_path\$src_name..."
 
-Write-Output "hello" 
-Write-Output "goodbye" 
-Timeout /T 5
+Write-Output "hello"
+
+# check if running from command line
+if ((Get-CimInstance win32_process -Filter "ProcessID=$PID" | Where-Object { $_.processname -eq "pwsh.exe" }) | Select-Object commandline) {
+    # running from command line
+    Write-Output "goodbye"
+}
+else {
+    # running as script
+    Timeout /T 5
+}
