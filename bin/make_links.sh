@@ -5,12 +5,8 @@
 # get starting time in nanoseconds
 start_time=$(date +%s%N)
 
-utils_dir="${HOME}/utils"
-config_dir="${HOME}/config"
-bash_utils_dir="${utils_dir}/bash"
-
 # load bash utilities
-fpretty="${config_dir}/.bashrc_pretty"
+fpretty="${HOME}/config/.bashrc_pretty"
 if [ -e "$fpretty" ]; then
     source "$fpretty"
     set_traps
@@ -28,8 +24,8 @@ src_dir_logi=$(dirname "$src_name")
 echo "source dir: $src_dir_logi"
 proj_name=$(basename "$src_dir_logi")
 echo "proj dir: $proj_name"
+utils_dir="${HOME}/utils"
 if [[ "${proj_name}" == "bin" ]]; then
-
     proj_name=$(basename $(dirname "$src_dir_logi"))
     bin_dir=$proj_name/bin
     echo "bin dir: $bin_dir"
@@ -38,7 +34,6 @@ if [[ "${proj_name}" == "bin" ]]; then
 else
     target_dir="${utils_dir}/${proj_name}"
 fi
-
 echo "target dir: $target_dir"
 link_dir=$HOME/bin
 
@@ -60,13 +55,12 @@ else
 fi
 
 cbar "Start Linking Repo Files"
-
 # list of files to be linked
 ext=.sh
 for my_link in blank clicker wiggler wsl_shutdown; do
     # define target (source)
     target=${target_dir}/${my_link}${ext}
-    # define link (destination)
+    # define link name (destination)
     sub_dir=$(dirname "$my_link")
     if [ ! $sub_dir = "." ]; then
         # strip target subdirectory from link name
@@ -77,4 +71,4 @@ for my_link in blank clicker wiggler wsl_shutdown; do
 
     do_link_exe "$target" "$link"
 done
-cbar "Done Making Links"
+cbar "Done Linking Repo Files"
