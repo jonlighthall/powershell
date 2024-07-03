@@ -67,8 +67,7 @@ for my_link in blank clicker wiggler wsl_shutdown; do
         my_link=$(basename "$my_link")
     fi
     link=${link_dir}/${my_link}
-    echo "linking $target to $link..."
-
-    do_link_exe "$target" "$link"
+    # create link
+    do_link_exe "${target}" "${link}"
 done
 cbar "Done Linking Repo Files"
