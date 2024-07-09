@@ -68,3 +68,7 @@ if ($bInt -eq $true) {
 function gitr {
     git remote -v
 }
+
+function x {
+    exit
+}
