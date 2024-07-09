@@ -40,7 +40,7 @@ else {
 }
 
 # Add the script path to PATH
-$scriptPath = Split-Path -Parent -Path $MyInvocation.MyCommand.Path
+$scriptPath = Split-Path -Parent -Path $(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty Target)
 if ($env:PATH -like "*$scriptPath*" -and $bInt -eq $true) {
     Write-Output "${TAB}$scriptPath is in PATH"
 }
