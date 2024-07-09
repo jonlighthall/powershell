@@ -9,7 +9,7 @@ Write-Host "running $src_path\$src_name..."
 Write-Output "hello"
 
 # check if running from command line
-if ((Get-CimInstance win32_process -Filter "ProcessID=$PID" | Where-Object { $_.processname -eq "pwsh.exe" }) | Select-Object commandline) {
+if ((Get-CimInstance win32_process -Filter "ProcessID=$PID" | Where-Object { $_.processname -eq "pwsh.exe" -or "powershell.exe"}) | Select-Object commandline) {
     # running from command line
     Write-Output "goodbye"
 }
