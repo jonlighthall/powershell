@@ -39,8 +39,18 @@ else {
     $env:PSModulePath = "$modulePath;" + $env:PSModulePath
 }
 
+# get the script path
+$repo_dir = Get-Item $MyInvocation.MyCommand.Path
+write-host "${TAB}$repo_dir invocation path"
+if ($repo_dir.LinkType -eq "SymbolicLink") {
+    $repo_dir = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty Target
+    write-host "${TAB}$repo_dir link target"
+}
+
+$scriptPath = Split-Path -Parent $repo_dir
+write-host "${TAB}$scriptPath directory"
+
 # Add the script path to PATH
-$scriptPath = Split-Path -Parent -Path $(Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty Target)
 if ($env:PATH -like "*$scriptPath*" -and $bInt -eq $true) {
     Write-Output "${TAB}$scriptPath is in PATH"
 }
@@ -54,4 +64,7 @@ else {
 
 if ($bInt -eq $true) {
     Write-Output "Weclome to $env:COMPUTERNAME"
+}
+function gitr {
+    git remote -v
 }
