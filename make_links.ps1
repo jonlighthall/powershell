@@ -31,18 +31,6 @@ $target = "$env:OneDrive\Documents\home\ConsoleHost_history.txt"
 # specify the path to the (local) Console Host history file
 $link = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
 
-# check if the target (cloud) file exists
-Write-Host "test cloud history..."
-if (Test-Path -Path $target) {
-    Write-Host "${TAB}$target found"
-    Write-Host "proceeding..."
-}
-else {
-    Write-Host "${TAB}$target not found" -ForegroundColor Red
-    Write-Host "${TAB}no history to link to`nexiting"
-    exit 1
-}
-
 # check if local file exists
 Write-Host "test local history..."
 $do_append = $false
@@ -87,6 +75,18 @@ else {
         Write-Host "Parent directory exists: $link_parent"
         $do_link = $true
     }
+}
+
+# check if the target (cloud) file exists
+Write-Host "test cloud history..."
+if (Test-Path -Path $target) {
+    Write-Host "${TAB}$target found"
+    Write-Host "proceeding..."
+}
+else {
+    Write-Host "${TAB}$target not found" -ForegroundColor Red
+    Write-Host "${TAB}no history to link to`nexiting"
+    exit 1
 }
 
 if ($do_link) {
