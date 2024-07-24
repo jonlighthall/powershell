@@ -25,7 +25,7 @@ Write-Host "..."
 
 # define target (source)
 # specify the path to the shared history file in OneDrive
-$target = "$env:OneDrive\Documents\ConsoleHost_history.txt"
+$target = "$env:OneDrive\Documents\home\ConsoleHost_history.txt"
 
 # define link (destination)
 # specify the path to the Console Host history file
