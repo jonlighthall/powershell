@@ -24,14 +24,14 @@ Write-Host "..."
 ## Copy and link PowerShell history from OneDrive
 
 # define target (source)
-# specify the path to the shared history file in OneDrive
+# specify the path to the shared history (cloud) file in OneDrive
 $target = "$env:OneDrive\Documents\home\ConsoleHost_history.txt"
 
 # define link (destination)
-# specify the path to the Console Host history file
+# specify the path to the (local) Console Host history file
 $link = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
 
-# check if the source file exists
+# check if the target (cloud) file exists
 Write-Host "test cloud history..."
 if (Test-Path -Path $target) {
     Write-Host "${TAB}$target found"
@@ -47,8 +47,8 @@ else {
 Write-Host "test local history..."
 $do_append = $false
 if (Test-Path -Path $link) {
-    Write-Host "${TAB}$local found"
-    # if the local file exists, append the cloud history to it
+    Write-Host "${TAB}$link found"
+    # if the local file (link) exists, append the cloud (target) history to it
     $do_append = $true
 
     # check if the local file is a link
@@ -60,7 +60,7 @@ if (Test-Path -Path $link) {
         $linkTarget = (Get-Item -Path $link).Target
         if ($linkTarget -eq $target) {
             Write-Host "$target"
-            # if the local file already points to the cloud file, do not append,
+            # if the local file (link) already points to the cloud (target) file, do not append,
             # do not link
             $do_append = $false
         }
