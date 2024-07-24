@@ -106,7 +106,7 @@ if ($do_link) {
         Write-Host "${TAB}proceeding with link..."
     }
     Write-Host "${TAB}${TAB}creating symbolic link"
-    cmd /c mklink $link $target
+    cmd.exe /c mklink /J $link $target
 }
 else {
     Write-Host "${TAB}no linking to do"
