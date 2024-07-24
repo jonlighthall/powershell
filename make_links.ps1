@@ -25,13 +25,11 @@ Write-Host "..."
 
 # define target (source)
 # specify the path to the shared history file in OneDrive
-$cloud = "$env:OneDrive\Documents\ConsoleHost_history.txt"
-$target = (Get-Item $cloud)
+$target = "$env:OneDrive\Documents\ConsoleHost_history.txt"
 
 # define link (destination)
 # specify the path to the Console Host history file
-$local = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
-$link = (Get-Item $local)
+$link = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt"
 
 # check if the source file exists
 Write-Host "test cloud history..."
@@ -48,7 +46,7 @@ else {
 # check if local file exists
 Write-Host "test local history..."
 $do_append = $false
-if (Test-Path -Path $local) {
+if (Test-Path -Path $link) {
     Write-Host "${TAB}$local found"
     # if the local file exists, append the cloud history to it
     $do_append = $true
@@ -59,9 +57,9 @@ if (Test-Path -Path $local) {
     if ($link.LinkType -eq "SymbolicLink") {
         Write-Host "a link "
         Write-Host "${TAB}and points to... " -NoNewline
-        $linkTarget = (Get-Item -Path $local).Target
-        if ($linkTarget -eq $cloud) {
-            Write-Host "$cloud"
+        $linkTarget = (Get-Item -Path $link).Target
+        if ($linkTarget -eq $target) {
+            Write-Host "$target"
             # if the local file already points to the cloud file, do not append,
             # do not link
             $do_append = $false
@@ -78,15 +76,15 @@ if (Test-Path -Path $local) {
     }
 }
 else {
-    Write-Host "$local not found"
-    # check if the parent directory of $local exists
-    $local_parent = Split-Path -Parent $local
-    if (-not (Test-Path -Path $local_parent)) {
-        Write-Host "Parent directory does not exist: $local_parent"
+    Write-Host "$link not found"
+    # check if the parent directory of $link exists
+    $link_parent = Split-Path -Parent $link
+    if (-not (Test-Path -Path $link_parent)) {
+        Write-Host "Parent directory does not exist: $link_parent"
         exit 1
     }
     else {
-        Write-Host "Parent directory exists: $local_parent"
+        Write-Host "Parent directory exists: $link_parent"
         $do_link = $true
     }
 }
@@ -95,20 +93,20 @@ if ($do_link) {
     if ($do_append) {
         Write-Host "${TAB}proceeding with append, delete, and link..."
         Write-Host "${TAB}${TAB}appending local copy with cloud copy..."
-        Add-Content -Path $cloud -Value $local
+        Add-Content -Path $target -Value $link
 
         Write-Host "${TAB}${TAB}renaming local copy"
-        $dir = [io.path]::GetDirectoryName($local)
-        $fname = [io.path]::GetFileNameWithoutExtension($local)
-        $ext = [io.path]::GetExtension($local)
-        Move-Item -v $local $dir\${fname}_$(get-date -f yyyy-MM-dd-hhmm)$ext
+        $dir = [io.path]::GetDirectoryName($link)
+        $fname = [io.path]::GetFileNameWithoutExtension($link)
+        $ext = [io.path]::GetExtension($link)
+        Move-Item -v $link $dir\${fname}_$(get-date -f yyyy-MM-dd-hhmm)$ext
     }
     else {
         Write-Host "${TAB}no appending to do"
         Write-Host "${TAB}proceeding with link..."
     }
     Write-Host "${TAB}${TAB}creating symbolic link"
-    cmd /c mklink $local $cloud
+    cmd /c mklink $link $target
 }
 else {
     Write-Host "${TAB}no linking to do"
