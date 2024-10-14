@@ -8,10 +8,14 @@ $src_path = Get-Location
 $src_name = $MyInvocation.MyCommand.Name
 Write-Host "running $src_path\$src_name..."
 
-#get PID
+# get window title
+$currentWindowTitle = $host.ui.RawUI.WindowTitle
+Write-Host "   old window title: $currentWindowTitle"
+
+#set a unique window title and get matching PID
 $src_win = "$src_name $(Get-Date -Format HH:mm)"
 $host.ui.RawUI.WindowTitle = "$src_win"
-Write-Host "   window title should be $src_win"
+Write-Host "   new window title: $src_win"
 $src_proc = Get-Process | Where-Object { $_.mainWindowTitle -like ${src_win} }
 $src_pid = $(($src_proc).Id)
 Write-Host "   PID = $src_pid"
@@ -142,5 +146,5 @@ try {
 # beep and reset window title on exit
 finally {
     Write-Host -NoNewLine "`a"
-    $host.ui.RawUI.WindowTitle = "Ubuntu"
+    $host.ui.RawUI.WindowTitle = $currentWindowTitle
 }
