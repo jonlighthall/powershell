@@ -3,6 +3,7 @@
 # The following command may need to be run before running this script
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
 
+# Calculate elapsed time
 function Get-ElapsedTime {
     param (
         [Parameter(Mandatory = $true)]
@@ -12,7 +13,7 @@ function Get-ElapsedTime {
     return $elapsedTime
 }
 
-# Function to format elapsed time
+# Format elapsed time
 function Format-ElapsedTime($elapsedTime) {
     if ($elapsedTime.TotalSeconds -lt 1) {
         return "{0,5:n1} ms" -f $($elapsedTime.TotalMilliseconds)
@@ -28,18 +29,19 @@ function Format-ElapsedTime($elapsedTime) {
     }
 }
 
+# Write elapsed time
 function Write-ElapsedTime($prefixText) {
     Write-Host "$prefixText elapsed time = $(Format-ElapsedTime $(Get-ElapsedTime $StartTime))"
-    #write-host " elapsed time = hello world"
 }
 
-# Function to indent text
+# Indent text (move cursor)
 function Set-TextIndent($indent) {
     $cur_pos = $host.UI.RawUI.CursorPosition
     $cur_pos.X = 16 + $indent
     $host.UI.RawUI.CursorPosition = $cur_pos
 }
 
+# Anti-indent text (move cursor back) to align with following text with indent
 function Write-TextIndentPrefix($prefixText) {
     Set-TextIndent -$($prefixText.Length)
     write-host -NoNewline "$prefixText"
@@ -64,7 +66,6 @@ Write-Host "   PID = $src_pid"
 
 # define time
 $StartTime = $(get-date)
-
 
 # -------------------------------------
 # BLINK SETTINGS
