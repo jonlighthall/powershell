@@ -72,29 +72,29 @@ $StartTime = $(get-date)
 # -------------------------------------
 
 # define maximum wait time between loops in minutes
-$global:loop_wait_min = 4 / 1000
+$loop_wait_min = 4
 
 # define time between key blinks in milliseconds
-$global:blink_wait_ms = 32
+$blink_wait_ms = 32
 
 # define number of blinks per loop
-$global:blinks_per_loop = 2
+$blinks_per_loop = 2
 
 # define keys to blink
-$global:keys = @("{CAPSLOCK}", "{SCROLLLOCK}", "{NUMLOCK}")
+$keys = @("{CAPSLOCK}", "{SCROLLLOCK}", "{NUMLOCK}")
 
 # define maximum number of keys to blink per loop
-$global:key_max = 1
+$key_max = 1
 
 # -------------------------------------
 # TEXT SETTINGS
 # -------------------------------------
 
 # define text to type on each loop
-$global:txt = "All work and no play makes Jack a dull boy."
+$txt = "All work and no play makes Jack a dull boy."
 
 # define whether to type text on each loop
-$global:do_text = $true
+$do_text = $false
 # -------------------------------------
 
 # loop settings
