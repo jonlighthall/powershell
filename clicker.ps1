@@ -3,6 +3,48 @@
 # The following command may need to be run before running this script
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
 
+function Get-ElapsedTime {
+    param (
+        [Parameter(Mandatory = $true)]
+        [datetime]$StartTime
+    )
+    $elapsedTime = $(get-date) - $StartTime
+    return $elapsedTime
+}
+
+# Function to format elapsed time
+function Format-ElapsedTime($elapsedTime) {
+    if ($elapsedTime.TotalSeconds -lt 1) {
+        return "{0,5:n1} ms" -f $($elapsedTime.TotalMilliseconds)
+    }
+    elseif ($elapsedTime.TotalSeconds -lt 60) {
+        return "{0,4:n1} s" -f $($elapsedTime.TotalSeconds)
+    }
+    elseif ($elapsedTime.TotalMinutes -lt 60) {
+        return "{0,4:n1} min" -f $($elapsedTime.TotalMinutes)
+    }
+    else {
+        return "{0:n1} hr" -f $($elapsedTime.TotalHours)
+    }
+}
+
+function Write-ElapsedTime($prefixText) {
+    Write-Host "$prefixText elapsed time = $(Format-ElapsedTime $(Get-ElapsedTime $StartTime))"
+    #write-host " elapsed time = hello world"
+}
+
+# Function to indent text
+function Set-TextIndent($indent) {
+    $cur_pos = $host.UI.RawUI.CursorPosition
+    $cur_pos.X = 16 + $indent
+    $host.UI.RawUI.CursorPosition = $cur_pos
+}
+
+function Write-TextIndentPrefix($prefixText) {
+    Set-TextIndent -$($prefixText.Length)
+    write-host -NoNewline "$prefixText"
+}
+
 # print source name at start
 $src_path = Get-Location
 $src_name = $MyInvocation.MyCommand.Name
@@ -22,7 +64,6 @@ Write-Host "   PID = $src_pid"
 
 # define time
 $StartTime = $(get-date)
-$elapsedTime = $(get-date) - $StartTime
 
 # loop settings
 $loop_wait_min = 4
@@ -111,26 +152,14 @@ try {
             if ($counter -gt 0) {
                 # define elapsed time
                 $elapsedTime = $(get-date) - $StartTime
-                # format elapsed time
-                if ($elapsedTime.TotalSeconds -lt 1) {
-                    Write-Host " elapsed time = $("{0,5:n1}" -f $($elapsedTime.TotalMilliseconds)) ms"
-                }
-                elseif ($elapsedTime.TotalSeconds -lt 60) {
-                    Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalSeconds)) s"
-                }
-                elseif ($elapsedTime.TotalMinutes -lt 60) {
-                    Write-Host " elapsed time = $("{0,4:n1}" -f $($elapsedTime.TotalMinutes)) min"
-                }
-                else {
-                    Write-Host " elapsed time = $("{0:n1}" -f $($elapsedTime.TotalHours)) hr"
-                }
+
+                # print elapsed time
+                Write-Host " elapsed time = $(Format-ElapsedTime $elapsedTime)"
 
                 # exit after 10 hours
                 if ($elapsedTime.TotalHours -ge 10) {
-                    $cur_pos = $host.UI.RawUI.CursorPosition
-                    $cur_pos.X = 16 - 3
-                    $host.UI.RawUI.CursorPosition = $cur_pos
-                    Write-Host "PS: elapsed time exceeds 10 hr"
+                    Write-TextIndentPrefix "PS:"
+                    write-host -ForegroundColor Red " elapsed time exceeds 10 hr"
                     exit
                 }
             }
@@ -145,6 +174,8 @@ try {
 }
 # beep and reset window title on exit
 finally {
+    Write-TextIndentPrefix "EXIT:"
+    Write-ElapsedTime
     Write-Host -NoNewLine "`a"
     $host.ui.RawUI.WindowTitle = $currentWindowTitle
 }
