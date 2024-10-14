@@ -65,23 +65,45 @@ Write-Host "   PID = $src_pid"
 # define time
 $StartTime = $(get-date)
 
+
+# -------------------------------------
+# BLINK SETTINGS
+# -------------------------------------
+
+# define maximum wait time between loops in minutes
+$global:loop_wait_min = 4 / 1000
+
+# define time between key blinks in milliseconds
+$global:blink_wait_ms = 32
+
+# define number of blinks per loop
+$global:blinks_per_loop = 2
+
+# define keys to blink
+$global:keys = @("{CAPSLOCK}", "{SCROLLLOCK}", "{NUMLOCK}")
+
+# define maximum number of keys to blink per loop
+$global:key_max = 1
+
+# -------------------------------------
+# TEXT SETTINGS
+# -------------------------------------
+
+# define text to type on each loop
+$global:txt = "All work and no play makes Jack a dull boy."
+
+# define whether to type text on each loop
+$global:do_text = $true
+# -------------------------------------
+
 # loop settings
-$loop_wait_min = 4
 $loop_wait_s = $loop_wait_min * 60
 $loop_wait_ms = $loop_wait_s * 1000
 $loops_per_hour = $([int](60 / $loop_wait_min))
 
-# blink settings
-$blink_wait_ms = 32
-$blinks_per_loop = 2
-
 # clicker settings
-$keys = @("{CAPSLOCK}", "{SCROLLLOCK}", "{NUMLOCK}")
 $nkeys = $keys.Length
-$key_max = 1
 $key_lim = [Math]::Min($nkeys, $key_max)
-$txt = "All work and no play makes Jack a dull boy."
-$do_text = $false
 
 # print settings
 $line_lim = 10
@@ -165,8 +187,12 @@ try {
             }
             Write-Host -NoNewline "$(Get-Date -Format HH:mm) "
         }
+
+        # print dot and increment counter
         Write-Host -NoNewline "."
         $counter++
+
+        # wait a randomized amount of time before next loop
         $this_wait = Get-Random -Minimum 0 -Maximum $loop_wait_ms
         $this_wait = $([int] $this_wait)
         Start-Sleep -Milliseconds $this_wait
