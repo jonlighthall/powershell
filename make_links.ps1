@@ -64,15 +64,15 @@ if (Test-Path -Path $link) {
     }
 }
 else {
-    Write-Host "$link not found"
+    Write-Host "${TAB}$link not found"
     # check if the parent directory of $link exists
     $link_parent = Split-Path -Parent $link
     if (-not (Test-Path -Path $link_parent)) {
-        Write-Host "Parent directory does not exist: $link_parent"
+        Write-Host "${TAB}Parent directory does not exist: $link_parent"
         exit 1
     }
     else {
-        Write-Host "Parent directory exists: $link_parent"
+        Write-Host "${TAB}Parent directory exists: $link_parent"
         $do_link = $true
     }
 }
