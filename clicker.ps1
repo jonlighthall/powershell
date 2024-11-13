@@ -114,6 +114,31 @@ if ($loops_per_hour -gt $line_lim) {
 else {
     $ndots = $loops_per_hour
 }
+
+# print settings
+Write-Host "loop settings:"
+Write-Host "   max interval = $loop_wait_min min"
+Write-Host "   loops per hour = $loops_per_hour"
+Write-Host "blinker settings:"
+Write-Host "   blink interval = $blink_wait_ms ms"
+Write-Host "   blinks per loop = $blinks_per_loop"
+Write-Host "   keys to blink: $($keys -join ', ' -replace '[{}]', '')"
+
+Write-Host "clicker settings:"
+Write-Host "   max keys per loop = $key_lim"
+Write-Host -NoNewLine "   keys to blink per loop: "
+for ($i = 0; $i -lt $key_lim; $i++) {
+    Write-Host -NoNewLine "$($keys[$i] -replace '[{}]', '') "
+}
+Write-Host ""
+Write-Host "   do text = $do_text"
+if ($do_text) {
+Write-Host "   text = $txt"
+}
+Write-Host "print settings:"
+Write-Host "   dots per line = $ndots"
+
+# print instructions
 Write-Host "Press Ctrl-C to exit."
 # set wait message
 $msg = "WAIT"
