@@ -1,7 +1,7 @@
 $WShell = New-Object -ComObject Wscript.Shell
 Write-Host "Press Ctrl-C to exit."
 while ($true) {
-# enter the time you want the script to stop (24-hour format)
+    # enter the time you want the script to stop (24-hour format)
     if ((Get-Date).Hour -ge 17) {
         write-host "$((Get-Date).Hour):$((Get-Date).Minute) done"
         break
