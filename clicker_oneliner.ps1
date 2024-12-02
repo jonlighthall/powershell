@@ -1,0 +1,1 @@
+$WShell = New-Object -ComObject Wscript.Shell; Write-Host "Press Ctrl-C to exit."; while ($true) { if ((Get-Date).Hour -ge 17) { Write-Host "done"; break }; 1..4 | ForEach-Object { $WShell.sendkeys("{CAPSLOCK}"); Start-Sleep -Milliseconds 32 }; Start-Sleep -Milliseconds (Get-Random -Minimum 0 -Maximum 240000) }
