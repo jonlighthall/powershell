@@ -3,6 +3,56 @@
 # The following command may need to be run before running this script
 # Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
 
+# -------------------------------------
+# BLINK SETTINGS
+# -------------------------------------
+
+# define maximum wait time between loops in minutes
+$loop_wait_min = 4
+
+# define time between key blinks in milliseconds
+$blink_wait_ms = 32
+
+# define number of blinks per loop
+$blinks_per_loop = 2
+
+# define keys to blink
+$keys = @("{CAPSLOCK}", "{SCROLLLOCK}", "{NUMLOCK}")
+
+# define maximum number of keys to blink per loop
+$key_max = 1
+
+# -------------------------------------
+# TEXT SETTINGS
+# -------------------------------------
+
+# define text to type on each loop
+$txt = "All work and no play makes Jack a dull boy."
+
+# define whether to type text on each loop
+$do_text = $false
+
+# -------------------------------------
+# TIME SETTINGS
+# -------------------------------------
+
+# set maximum duration in hours
+$max_hours = 10
+
+# set time of day to exit loop
+$exit_hour = 18
+$exit_minute = 30
+$exit_time = $exit_hour + ($exit_minute / 60)
+
+# -------------------------------------
+
+# calculate current time in fractional hours
+function Get-FractionalHour {
+    $currentTime = Get-Date
+    $fractionalHour = $currentTime.Hour + ($currentTime.Minute / 60)
+    return $fractionalHour
+}
+
 # Calculate elapsed time
 function Get-ElapsedTime {
     param (
@@ -67,36 +117,6 @@ Write-Host "   PID = $src_pid"
 # define time
 $StartTime = $(get-date)
 
-# -------------------------------------
-# BLINK SETTINGS
-# -------------------------------------
-
-# define maximum wait time between loops in minutes
-$loop_wait_min = 4
-
-# define time between key blinks in milliseconds
-$blink_wait_ms = 32
-
-# define number of blinks per loop
-$blinks_per_loop = 2
-
-# define keys to blink
-$keys = @("{CAPSLOCK}", "{SCROLLLOCK}", "{NUMLOCK}")
-
-# define maximum number of keys to blink per loop
-$key_max = 1
-
-# -------------------------------------
-# TEXT SETTINGS
-# -------------------------------------
-
-# define text to type on each loop
-$txt = "All work and no play makes Jack a dull boy."
-
-# define whether to type text on each loop
-$do_text = $false
-# -------------------------------------
-
 # loop settings
 $loop_wait_s = $loop_wait_min * 60
 $loop_wait_ms = $loop_wait_s * 1000
@@ -133,7 +153,7 @@ for ($i = 0; $i -lt $key_lim; $i++) {
 Write-Host ""
 Write-Host "   do text = $do_text"
 if ($do_text) {
-Write-Host "   text = $txt"
+    Write-Host "   text = $txt"
 }
 Write-Host "print settings:"
 Write-Host "   dots per line = $ndots"
@@ -148,6 +168,7 @@ $WShell = New-Object -ComObject Wscript.Shell
 
 try {
     while ($true) {
+        # check for valid PID
         if ($src_pid -gt 0) {
             $null = (New-Object -ComObject WScript.Shell).AppActivate($src_pid)
             $pid_ok = $true
@@ -155,6 +176,7 @@ try {
         else {
             $pid_ok = $false
         }
+        # execute clicker routine
         if ($counter -gt 0) {
             # print wait message
             Write-Host -NoNewline -ForegroundColor Red "$($PSStyle.bold)$msg$($PSStyle.BoldOff)"
@@ -166,9 +188,9 @@ try {
 
             # loop over blinks_per_loop, twice
             # for each blink loop
-            #   * loop over keys and send each key
+            #   * loop over keys and send each key (toggle key)
             #   * wait for blink interval
-            #   * loop over kesy again and send each key (resetting status)
+            #   * loop over keys again and send each key (un-toggle key)
             for ($j = 0; $j -lt ($blinks_per_loop * 2); $j++) {
                 # loop over keys
                 for ($i = 0; $i -lt $key_lim; $i++) {
@@ -201,17 +223,29 @@ try {
                 # define elapsed time
                 $elapsedTime = $(get-date) - $StartTime
 
-                # print elapsed time
+                # print elapsed time at the end of each line
                 Write-Host " elapsed time = $(Format-ElapsedTime $elapsedTime)"
 
-                # exit after 10 hours
-                if ($elapsedTime.TotalHours -ge 10) {
+                # exit after maximum duration
+                if ($elapsedTime.TotalHours -ge $max_hours) {
                     Write-TextIndentPrefix "PS:"
-                    write-host -ForegroundColor Red " elapsed time exceeds 10 hr"
+                    write-host -ForegroundColor Red " elapsed time exceeds $max_hours hr"
                     exit
                 }
             }
+
+            # print the current time at the start of each line
             Write-Host -NoNewline "$(Get-Date -Format HH:mm) "
+
+            # get current time
+            $now_time = Get-FractionalHour
+
+            # check time agaist time limit
+            if ($now_time -gt $exit_time) {
+                Write-TextIndentPrefix "PS:"
+                write-host -ForegroundColor Red " current time exceeds ${exit_hour}:$exit_minute"
+                exit
+            }
         }
 
         # print dot and increment counter
