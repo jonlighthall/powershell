@@ -240,7 +240,7 @@ try {
             # get current time
             $now_time = Get-FractionalHour
 
-            # check time agaist time limit
+            # check time against time limit
             if ($now_time -gt $exit_time) {
                 Write-TextIndentPrefix "PS:"
                 write-host -ForegroundColor Red " current time exceeds ${exit_hour}:$exit_minute"
