@@ -72,6 +72,8 @@ else {
     $env:PATH = $scriptPath + ";" + $env:PATH
 }
 
+Set-PSReadLineOption -HistorySavePath 'C:\Users\jlighthall\OneDrive - US Navy-flankspeed\Documents\home\ConsoleHost_history.txt'
+
 if ($bInt -eq $true) {
     Write-Output "Weclome to $env:COMPUTERNAME"
 }
