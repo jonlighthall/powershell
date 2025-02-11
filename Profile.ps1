@@ -1,6 +1,16 @@
 # The following command may need to be run to enable use of a profile
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force #-Verbose
 
+# check if running from command line
+if ((Get-CimInstance win32_process -Filter "ProcessID=$PID" | Where-Object { $_.processname -eq "pwsh.exe" -or "powershell.exe"}) | Select-Object commandline) {
+    # running from command line
+    Write-Output "CLI"
+}
+else {
+    # running as script
+    Write-Output "script"
+}
+
 # Test each Arg for match of abbreviated '-NonInteractive' command.
 $NonInteractive = [Environment]::GetCommandLineArgs() | Where-Object { $_ -like '-NonI*' }
 if ([Environment]::UserInteractive -and -not $NonInteractive) {
