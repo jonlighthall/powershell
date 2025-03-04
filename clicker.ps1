@@ -40,8 +40,8 @@ $do_text = $false
 $max_hours = 10
 
 # set time of day to exit loop
-$exit_hour = 18
-$exit_minute = 30
+$exit_hour = 16
+$exit_minute = (30-$loop_wait_min)
 $exit_time = $exit_hour + ($exit_minute / 60)
 
 # -------------------------------------
@@ -157,6 +157,20 @@ if ($do_text) {
 }
 Write-Host "print settings:"
 Write-Host "   dots per line = $ndots"
+
+# print PowerShell version
+Write-Host "PowerShell version is $($PSVersionTable.PSVersion)"
+Write-Host "   Testing escapes: `e[31mthis text is red`e[0m"
+
+# clear screen
+Write-Host "   moving cursor home and erasing screen...`e[H`e[2J"
+if ($PSVersionTable.PSVersion -lt [Version]"6.2") {
+    Write-Host "   This script requires PowerShell version 6.2 or higher."
+    write-host -ForegroundColor Red "   Please update PowerShell to the latest version."
+    write-host "   clearing screen..."
+    Start-Sleep -Seconds 5
+    Clear-Host
+}
 
 # print instructions
 Write-Host "Press Ctrl-C to exit."
