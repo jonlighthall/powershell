@@ -117,6 +117,25 @@ Write-Host "   PID = $src_pid"
 # define time
 $StartTime = $(get-date)
 
+# print time settings
+Write-Host "clock settings:"
+# get time zone
+$timezone = [System.TimeZone]::CurrentTimeZone.StandardName
+$timezoneFirstLetters = ($timezone -split ' ' | ForEach-Object { $_[0] }) -join ''
+write-host "   start time = $($StartTime.ToString('HH:mm')) $timezoneFirstLetters"
+write-host "    exit time = ${exit_hour}:$exit_minute $timezoneFirstLetters"
+
+# Calculate the difference between exit time and current time
+$current_time = Get-FractionalHour
+$time_difference = $exit_time - $current_time
+# Convert the time difference to hours and minutes
+$hours_difference = [math]::Floor($time_difference)
+$minutes_difference = [math]::Round(($time_difference - $hours_difference) * 60)
+# print the remaining time
+Write-Host "   remaining time = ${hours_difference}:$minutes_difference"
+Write-Host -NoNewLine "  "
+Write-ElapsedTime
+
 # loop settings
 $loop_wait_s = $loop_wait_min * 60
 $loop_wait_ms = $loop_wait_s * 1000
