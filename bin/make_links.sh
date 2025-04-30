@@ -43,7 +43,7 @@ do_make_dir "$link_dir"
 cbar "Start Linking Repo Files"
 # list of files to be linked
 ext=.sh
-for my_link in blank clicker wiggler wsl_shutdown; do
+for my_link in blank clicker wiggler wsl-vpnkit wsl_shutdown; do
     # define target (source)
     target=${target_dir}/${my_link}${ext}
     # define link name (destination)
