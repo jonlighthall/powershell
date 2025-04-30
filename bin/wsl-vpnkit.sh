@@ -1,6 +1,15 @@
 #!/bin/bash
 #
-# Mar 2023 JCL
+# Run WSL VPN kit to provide network connectivity to the WSL 2 VM via the
+#   existing Winodws nework connection.
+#
+# DOWNLOAD
+#   https://github.com/sakai135/wsl-vpnkit/releases/latest
+#
+# INSTALL
+#   PS> wsl --import wsl-vpnkit --version 2 $env:USERPROFILE\wsl-vpnkit wsl-vpnkit.tar.gz
+#
+# Apr 2025 JCL
 
 # load bash utilities
 fpretty=${HOME}/config/.bashrc_pretty
