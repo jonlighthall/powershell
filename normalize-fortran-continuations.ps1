@@ -105,20 +105,65 @@ function Format-ContinuationLines {
    return , $out.ToArray()
 }
 
-# Read file as UTF-8 text (use cmdlet encoding name to satisfy Windows PowerShell 5)
-$original = Get-Content -LiteralPath $InputFile -Raw -Encoding utf8
-# Fallback for environments where -Encoding utf8 may not be honored
-if ($null -eq $original) {
-   $original = [IO.File]::ReadAllText($InputFile, [System.Text.UTF8Encoding]::new($false))
+# Enhanced error handling
+$ErrorActionPreference = 'Stop'
+
+if (-not (Test-Path -LiteralPath $InputFile)) {
+   throw "Input file not found: $InputFile"
 }
 
-# Split on CRLF or LF using regex (PowerShell uses .NET regex for -split)
-$lines = $original -split "\r?\n"
+try {
+   # Read file as UTF-8 text with error handling
+   $original = Get-Content -LiteralPath $InputFile -Raw -Encoding utf8 -ErrorAction Stop
+   # Fallback for environments where -Encoding utf8 may not be honored
+   if ($null -eq $original) {
+      $original = [IO.File]::ReadAllText($InputFile, [System.Text.UTF8Encoding]::new($false))
+   }
 
-$normalized = Format-ContinuationLines -lines $lines
+   if ([string]::IsNullOrEmpty($original)) {
+      throw "Input file is empty or could not be read"
+   }
 
-# Write to a temp file first, then atomically replace the original
-$tmpPath = "$InputFile.tmp"
-$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-[IO.File]::WriteAllText($tmpPath, ($normalized -join [Environment]::NewLine), $utf8NoBom)
-Move-Item -LiteralPath $tmpPath -Destination $InputFile -Force
+   # Split on CRLF or LF using regex (PowerShell uses .NET regex for -split)
+   $lines = $original -split "\r?\n"
+   $originalLineCount = $lines.Count
+
+   $normalized = Format-ContinuationLines -lines $lines
+
+   if ($null -eq $normalized -or $normalized.Count -eq 0) {
+      throw "Normalization produced no output"
+   }
+
+   # Write to a temp file first, then atomically replace the original
+   $tmpPath = "$InputFile.tmp"
+   $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+
+   try {
+      [IO.File]::WriteAllText($tmpPath, ($normalized -join [Environment]::NewLine), $utf8NoBom)
+
+      # Validate temp file
+      $tmpSize = (Get-Item -LiteralPath $tmpPath).Length
+      if ($tmpSize -eq 0) {
+         throw "Failed to write normalized content to temporary file"
+      }
+
+      # Atomic move
+      Move-Item -LiteralPath $tmpPath -Destination $InputFile -Force -ErrorAction Stop
+
+      # Final validation
+      $finalSize = (Get-Item -LiteralPath $InputFile).Length
+      if ($finalSize -eq 0) {
+         throw "Final file is empty after normalization"
+      }
+   }
+   finally {
+      # Clean up temp file if it exists
+      if (Test-Path -LiteralPath $tmpPath) {
+         Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
+      }
+   }
+}
+catch {
+   Write-Error "Normalization failed: $_"
+   throw
+}

@@ -18,22 +18,54 @@ $backup = "$InputFile.bak.$timestamp"
 Copy-Item -LiteralPath $InputFile -Destination $backup -Force
 
 try {
+   # Get initial file stats for validation
+   $originalSize = (Get-Item -LiteralPath $InputFile).Length
+   $originalLines = (Get-Content -LiteralPath $InputFile).Count
+
    # Run the global breaker first
-   & $BreakerPath -InputFile $InputFile -MaxCol $MaxCol
+   Write-Verbose "Running line breaker..."
+   try {
+      & $BreakerPath -InputFile $InputFile -MaxCol $MaxCol
+   }
+   catch {
+      throw "Line breaker failed: $_"
+   }
 
    # Then run the local normalizer
+   Write-Verbose "Running continuation normalizer..."
    $normalizer = Join-Path -Path $PSScriptRoot -ChildPath 'normalize-fortran-continuations.ps1'
-   & $normalizer -InputFile $InputFile -MaxCol $MaxCol
-
-   # Basic sanity check: file should not be empty after processing
-   $len = (Get-Item -LiteralPath $InputFile).Length
-   if ($len -le 0) {
-      throw "Post-processing produced an empty file; restored from backup $backup"
+   try {
+      & $normalizer -InputFile $InputFile -MaxCol $MaxCol
    }
+   catch {
+      throw "Normalizer failed: $_"
+   }
+
+   # Enhanced validation checks
+   $newSize = (Get-Item -LiteralPath $InputFile).Length
+   $newLines = (Get-Content -LiteralPath $InputFile).Count
+
+   if ($newSize -le 0) {
+      throw "Post-processing produced an empty file"
+   }
+
+   if ($newLines -lt ($originalLines * 0.8)) {
+      throw "Post-processing lost too many lines (original: $originalLines, new: $newLines)"
+   }
+
+   if ($newSize -lt ($originalSize * 0.5)) {
+      throw "Post-processing reduced file size too much (original: $originalSize bytes, new: $newSize bytes)"
+   }
+
+   # Success! Clean up the backup file
+   Write-Verbose "Processing completed successfully. Cleaning up backup: $backup"
+   Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue
+   Write-Host "✅ Fortran formatting completed successfully (processed $newLines lines)"
 }
 catch {
-   Write-Error $_
+   Write-Error "❌ Error during processing: $_"
    # Restore from backup on error
+   Write-Host "🔄 Restoring from backup: $backup"
    Copy-Item -LiteralPath $backup -Destination $InputFile -Force
    throw
 }

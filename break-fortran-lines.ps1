@@ -120,7 +120,8 @@ function Wrap-FixedFormLine {
   $firstLabel5 = $label5
   $firstCol6 = if ($isContinuation) {
     if ([string]::IsNullOrWhiteSpace($col6)) { ' ' } else { $col6 }
-  } else {
+  }
+  else {
     $col6
   }
 
@@ -136,7 +137,8 @@ function Wrap-FixedFormLine {
   while ($true) {
     $prefix = if ($currentIsFirst) {
       $firstLabel5 + $firstCol6
-    } else {
+    }
+    else {
       '     ' + $ContChar + $postContSpaces
     }
 
@@ -195,8 +197,27 @@ if ($DryRun) {
 else {
   $tmp = [System.IO.Path]::GetTempFileName()
   try {
-    $result | Set-Content -LiteralPath $tmp -NoNewline -Encoding utf8
-    Move-Item -Force -LiteralPath $tmp -Destination $InputFile
+    # Write to temp file with error checking
+    $result | Set-Content -LiteralPath $tmp -NoNewline -Encoding utf8 -ErrorAction Stop
+
+    # Validate temp file was written correctly
+    $tmpSize = (Get-Item -LiteralPath $tmp).Length
+    if ($tmpSize -eq 0) {
+      throw "Failed to write content to temporary file"
+    }
+
+    # Atomic move operation
+    Move-Item -Force -LiteralPath $tmp -Destination $InputFile -ErrorAction Stop
+
+    # Validate final file
+    $finalSize = (Get-Item -LiteralPath $InputFile).Length
+    if ($finalSize -eq 0) {
+      throw "Final file is empty after move operation"
+    }
+  }
+  catch {
+    Write-Error "File write operation failed: $_"
+    throw
   }
   finally {
     if (Test-Path -LiteralPath $tmp) {
