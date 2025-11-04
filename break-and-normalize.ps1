@@ -60,12 +60,12 @@ try {
    # Success! Clean up the backup file
    Write-Verbose "Processing completed successfully. Cleaning up backup: $backup"
    Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue
-   Write-Host "✅ Fortran formatting completed successfully (processed $newLines lines)"
+   Write-Host "SUCCESS: Fortran formatting completed successfully (processed $newLines lines)"
 }
 catch {
-   Write-Error "❌ Error during processing: $_"
+   Write-Error "ERROR: Error during processing: $_"
    # Restore from backup on error
-   Write-Host "🔄 Restoring from backup: $backup"
+   Write-Host "RESTORING from backup: $backup"
    Copy-Item -LiteralPath $backup -Destination $InputFile -Force
    throw
 }
