@@ -109,11 +109,12 @@ try {
         while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Start-Sleep -Milliseconds 500
         }
-
+        # state change: card inserted
         Write-Host ""
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
         Write-Host ""
     } else {
+        # initial state: card already present
         Write-Host ""
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
         Write-Host ""
@@ -126,8 +127,10 @@ try {
         Start-Sleep -Milliseconds 500
 
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
+            # state change: card removed
             Write-Host ""
             Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
+            [Console]::ResetColor()
             Write-Host ""
 
             # Show popup with timeout
@@ -206,6 +209,7 @@ try {
             while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
                 Start-Sleep -Milliseconds 500
             }
+            # state change: card reinserted
             Write-Host ""
             Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
             Write-Host ""
