@@ -120,9 +120,8 @@ try {
         Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
         [Console]::ResetColor()
+        Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     }
-
-    Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
 
     # Poll for card removal
     while ($true) {
@@ -139,7 +138,7 @@ try {
             $form = New-Object System.Windows.Forms.Form
             $form.TopMost = $true
             $form.StartPosition = 'CenterScreen'
-            $form.Size = New-Object System.Drawing.Size(400, 180)
+            $form.Size = New-Object System.Drawing.Size(400, 230)
             $form.Text = 'CAC Card Removed'
             $form.FormBorderStyle = 'FixedDialog'
             $form.MaximizeBox = $false
@@ -147,39 +146,50 @@ try {
 
             $label = New-Object System.Windows.Forms.Label
             $label.Location = New-Object System.Drawing.Point(20, 20)
-            $label.Size = New-Object System.Drawing.Size(360, 60)
-            $label.Text = "CAC card removed!`n`nDo you want to close Outlook?"
+            $label.Size = New-Object System.Drawing.Size(360, 110)
             $label.AutoSize = $false
             $form.Controls.Add($label)
 
             $yesButton = New-Object System.Windows.Forms.Button
-            $yesButton.Location = New-Object System.Drawing.Point(80, 90)
+            $yesButton.Location = New-Object System.Drawing.Point(80, 140)
             $yesButton.Size = New-Object System.Drawing.Size(100, 35)
-            $yesButton.Text = 'Yes'
+            $yesButton.Text = '&Yes'
             $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
             $form.Controls.Add($yesButton)
             $form.AcceptButton = $yesButton
 
             $noButton = New-Object System.Windows.Forms.Button
-            $noButton.Location = New-Object System.Drawing.Point(220, 90)
+            $noButton.Location = New-Object System.Drawing.Point(220, 140)
             $noButton.Size = New-Object System.Drawing.Size(100, 35)
-            $noButton.Text = 'No'
+            $noButton.Text = '&No'
             $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
             $form.Controls.Add($noButton)
             $form.CancelButton = $noButton
 
-            # Timer to close form after 10 seconds
-            $timer = New-Object System.Windows.Forms.Timer
-            $timer.Interval = 10000  # 10 seconds
-            $timer.Add_Tick({
-                $form.DialogResult = [System.Windows.Forms.DialogResult]::None
-                $form.Close()
+            # Countdown timer that updates every second
+            $countdown = 10
+            $baseText = "CAC card removed!`n`nDo you want to close Outlook? (Press Y or N)`n`nClosing in"
+
+            $countdownTimer = New-Object System.Windows.Forms.Timer
+            $countdownTimer.Interval = 1000  # 1 second
+            $countdownTimer.Add_Tick({
+                $script:countdown--
+                if ($script:countdown -gt 0) {
+                    $label.Text = "$baseText $($script:countdown) seconds..."
+                } else {
+                    $countdownTimer.Stop()
+                    $form.DialogResult = [System.Windows.Forms.DialogResult]::None
+                    $form.Close()
+                }
             })
-            $timer.Start()
+            $countdownTimer.Start()
+
+            # Update initial label with countdown
+            $label.Text = "$baseText $countdown seconds..."
 
             $result = $form.ShowDialog()
-            $timer.Stop()
-            $timer.Dispose()
+            $countdownTimer.Stop()
+            $countdownTimer.Dispose()
             $form.Dispose()
 
             # Handle response
