@@ -104,15 +104,19 @@ try {
 
     # Wait for card to be present
     if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-        Write-Host "Waiting for card to be inserted..." -ForegroundColor Yellow
+        Write-Host "Waiting for card to be inserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
 
         while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Start-Sleep -Milliseconds 500
         }
 
-        Write-Host "Card inserted!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
+        Write-Host ""
     } else {
-        Write-Host "Card already present!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
+        Write-Host ""
     }
 
     Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
@@ -123,7 +127,7 @@ try {
 
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Write-Host ""
-            Write-Host "*** CARD REMOVED! ***" -ForegroundColor Red -BackgroundColor Yellow
+            Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
             Write-Host ""
 
             # Show popup with timeout
@@ -132,7 +136,7 @@ try {
             $form = New-Object System.Windows.Forms.Form
             $form.TopMost = $true
             $form.StartPosition = 'CenterScreen'
-            $form.Size = New-Object System.Drawing.Size(400, 150)
+            $form.Size = New-Object System.Drawing.Size(400, 180)
             $form.Text = 'CAC Card Removed'
             $form.FormBorderStyle = 'FixedDialog'
             $form.MaximizeBox = $false
@@ -140,21 +144,22 @@ try {
 
             $label = New-Object System.Windows.Forms.Label
             $label.Location = New-Object System.Drawing.Point(20, 20)
-            $label.Size = New-Object System.Drawing.Size(360, 40)
+            $label.Size = New-Object System.Drawing.Size(360, 60)
             $label.Text = "CAC card removed!`n`nDo you want to close Outlook?"
+            $label.AutoSize = $false
             $form.Controls.Add($label)
 
             $yesButton = New-Object System.Windows.Forms.Button
-            $yesButton.Location = New-Object System.Drawing.Point(80, 70)
-            $yesButton.Size = New-Object System.Drawing.Size(100, 30)
+            $yesButton.Location = New-Object System.Drawing.Point(80, 90)
+            $yesButton.Size = New-Object System.Drawing.Size(100, 35)
             $yesButton.Text = 'Yes'
             $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
             $form.Controls.Add($yesButton)
             $form.AcceptButton = $yesButton
 
             $noButton = New-Object System.Windows.Forms.Button
-            $noButton.Location = New-Object System.Drawing.Point(220, 70)
-            $noButton.Size = New-Object System.Drawing.Size(100, 30)
+            $noButton.Location = New-Object System.Drawing.Point(220, 90)
+            $noButton.Size = New-Object System.Drawing.Size(100, 35)
             $noButton.Text = 'No'
             $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
             $form.Controls.Add($noButton)
@@ -197,12 +202,13 @@ try {
             }
 
             # Wait for card to be reinserted before continuing monitoring
-            Write-Host ""
-            Write-Host "Waiting for card to be reinserted..." -ForegroundColor Yellow
+            Write-Host "Waiting for card to be reinserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
             while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
                 Start-Sleep -Milliseconds 500
             }
-            Write-Host "Card reinserted! Resuming monitoring..." -ForegroundColor Green
+            Write-Host ""
+            Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
+            Write-Host ""
 
             # Give a brief moment for the card to settle, then check immediately
             Start-Sleep -Milliseconds 100
