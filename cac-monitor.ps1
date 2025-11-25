@@ -104,19 +104,27 @@ try {
 
     # Wait for card to be present
     if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
+        Write-Host "Initial state: No card detected" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
+        [Console]::ResetColor()
+        Write-Host ""
         Write-Host "Waiting for card to be inserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
 
         while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Start-Sleep -Milliseconds 500
         }
-        # state change: card inserted
+        Write-Host "State change: Card inserted" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
+        Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
+        [Console]::ResetColor()
         Write-Host ""
+        Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     } else {
-        # initial state: card already present
+        Write-Host "Initial state: Card detected" -ForegroundColor Gray
         Write-Host ""
-        Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
+        Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
+        [Console]::ResetColor()
         Write-Host ""
     }
 
@@ -127,7 +135,7 @@ try {
         Start-Sleep -Milliseconds 500
 
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-            # state change: card removed
+            Write-Host "State change: Card removed" -ForegroundColor Gray
             Write-Host ""
             Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
             [Console]::ResetColor()
@@ -209,10 +217,12 @@ try {
             while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
                 Start-Sleep -Milliseconds 500
             }
-            # state change: card reinserted
+            Write-Host "State change: Card inserted" -ForegroundColor Gray
             Write-Host ""
-            Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Black
+            Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
+            [Console]::ResetColor()
             Write-Host ""
+            Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
 
             # Give a brief moment for the card to settle, then check immediately
             Start-Sleep -Milliseconds 100
