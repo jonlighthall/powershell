@@ -104,20 +104,20 @@ try {
 
     # Wait for card to be present
     if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state:  " -ForegroundColor Gray -NoNewline
-        Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
+        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: " -ForegroundColor Gray -NoNewline
+        Write-Host "*** CARD REMOVED  ***" -ForegroundColor Red -BackgroundColor Yellow
         [Console]::ResetColor()
         Write-Host "Waiting for card to be inserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
 
         while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Start-Sleep -Milliseconds 500
         }
-        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change: " -ForegroundColor Gray -NoNewline
+        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
         [Console]::ResetColor()
         Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     } else {
-        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state:  " -ForegroundColor Gray -NoNewline
+        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
         [Console]::ResetColor()
     }
@@ -129,8 +129,8 @@ try {
         Start-Sleep -Milliseconds 500
 
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change: " -ForegroundColor Gray -NoNewline
-            Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
+            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
+            Write-Host "*** CARD REMOVED  ***" -ForegroundColor Red -BackgroundColor Yellow
             [Console]::ResetColor()
 
             # Show popup with timeout
@@ -209,7 +209,7 @@ try {
             while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
                 Start-Sleep -Milliseconds 500
             }
-            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change: " -ForegroundColor Gray -NoNewline
+            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
             Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
             [Console]::ResetColor()
             Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
