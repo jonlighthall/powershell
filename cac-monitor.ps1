@@ -125,7 +125,87 @@ try {
             Write-Host ""
             Write-Host "*** CARD REMOVED! ***" -ForegroundColor Red -BackgroundColor Yellow
             Write-Host ""
-            break
+
+            # Show popup with timeout
+            Add-Type -AssemblyName System.Windows.Forms
+
+            $form = New-Object System.Windows.Forms.Form
+            $form.TopMost = $true
+            $form.StartPosition = 'CenterScreen'
+            $form.Size = New-Object System.Drawing.Size(400, 150)
+            $form.Text = 'CAC Card Removed'
+            $form.FormBorderStyle = 'FixedDialog'
+            $form.MaximizeBox = $false
+            $form.MinimizeBox = $false
+
+            $label = New-Object System.Windows.Forms.Label
+            $label.Location = New-Object System.Drawing.Point(20, 20)
+            $label.Size = New-Object System.Drawing.Size(360, 40)
+            $label.Text = "CAC card removed!`n`nDo you want to close Outlook?"
+            $form.Controls.Add($label)
+
+            $yesButton = New-Object System.Windows.Forms.Button
+            $yesButton.Location = New-Object System.Drawing.Point(80, 70)
+            $yesButton.Size = New-Object System.Drawing.Size(100, 30)
+            $yesButton.Text = 'Yes'
+            $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
+            $form.Controls.Add($yesButton)
+            $form.AcceptButton = $yesButton
+
+            $noButton = New-Object System.Windows.Forms.Button
+            $noButton.Location = New-Object System.Drawing.Point(220, 70)
+            $noButton.Size = New-Object System.Drawing.Size(100, 30)
+            $noButton.Text = 'No'
+            $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
+            $form.Controls.Add($noButton)
+            $form.CancelButton = $noButton
+
+            # Timer to close form after 10 seconds
+            $timer = New-Object System.Windows.Forms.Timer
+            $timer.Interval = 10000  # 10 seconds
+            $timer.Add_Tick({
+                $form.DialogResult = [System.Windows.Forms.DialogResult]::None
+                $form.Close()
+            })
+            $timer.Start()
+
+            $result = $form.ShowDialog()
+            $timer.Stop()
+            $timer.Dispose()
+            $form.Dispose()
+
+            # Handle response
+            if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
+
+                $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
+                if ($outlookProcess) {
+                    Write-Host "Closing Outlook..." -ForegroundColor Yellow
+                    Stop-Process -Name "OUTLOOK" -Force
+                    Write-Host "Outlook closed." -ForegroundColor Green
+                } else {
+                    Write-Host "Outlook is not running." -ForegroundColor Gray
+                }
+
+                # Exit after closing Outlook
+                Write-Host "Exiting monitor." -ForegroundColor Cyan
+                break
+            } elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
+                Write-Host "User clicked No - continuing monitoring." -ForegroundColor Gray
+            } else {
+                Write-Host "Timeout - no action taken." -ForegroundColor Gray
+            }
+
+            # Wait for card to be reinserted before continuing monitoring
+            Write-Host ""
+            Write-Host "Waiting for card to be reinserted..." -ForegroundColor Yellow
+            while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
+                Start-Sleep -Milliseconds 500
+            }
+            Write-Host "Card reinserted! Resuming monitoring..." -ForegroundColor Green
+
+            # Give a brief moment for the card to settle, then check immediately
+            Start-Sleep -Milliseconds 100
         }
     }
 } finally {
