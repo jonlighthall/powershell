@@ -104,7 +104,7 @@ try {
 
     # Wait for card to be present
     if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-        Write-Host "Initial state: No card detected" -ForegroundColor Gray
+        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: No card detected" -ForegroundColor Gray
         Write-Host ""
         Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
         [Console]::ResetColor()
@@ -114,14 +114,14 @@ try {
         while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Start-Sleep -Milliseconds 500
         }
-        Write-Host "State change: Card inserted" -ForegroundColor Gray
+        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change: Card inserted" -ForegroundColor Gray
         Write-Host ""
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
         [Console]::ResetColor()
         Write-Host ""
         Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     } else {
-        Write-Host "Initial state: Card detected" -ForegroundColor Gray
+        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: Card detected" -ForegroundColor Gray
         Write-Host ""
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
         [Console]::ResetColor()
@@ -135,7 +135,7 @@ try {
         Start-Sleep -Milliseconds 500
 
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-            Write-Host "State change: Card removed" -ForegroundColor Gray
+            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change: Card removed" -ForegroundColor Gray
             Write-Host ""
             Write-Host "*** CARD REMOVED ***" -ForegroundColor Red -BackgroundColor Yellow
             [Console]::ResetColor()
@@ -217,7 +217,7 @@ try {
             while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
                 Start-Sleep -Milliseconds 500
             }
-            Write-Host "State change: Card inserted" -ForegroundColor Gray
+            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change: Card inserted" -ForegroundColor Gray
             Write-Host ""
             Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
             [Console]::ResetColor()
