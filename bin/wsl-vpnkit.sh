@@ -19,6 +19,16 @@ if [ -e $fpretty ]; then
     print_source
 fi
 
+# If already running, exit quietly to avoid duplicate instance
+if wsl.exe -d wsl-vpnkit --exec sh -c "pgrep -f '/app/wsl-vm' >/dev/null 2>&1"; then
+    # If running in an interactive terminal, show a friendly note.
+    if [ -t 1 ]; then
+        echo "wsl-vpnkit is already running; not starting another instance."
+    fi
+    # Exit quietly to avoid window blink when launched via 'start'.
+    exit 0
+fi
+
 echo "Starting wsl-vpnkit..."
 echo "This window must remain open for WSL network connectivity."
 echo
