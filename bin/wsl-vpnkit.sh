@@ -23,15 +23,5 @@ echo "Starting wsl-vpnkit..."
 echo "This window must remain open for WSL network connectivity."
 echo
 
-# Run wsl-vpnkit and capture output to detect when it's ready
-wsl.exe -d wsl-vpnkit --cd /app wsl-vpnkit 2>&1 | while IFS= read -r line; do
-    echo "$line"
-    
-    # Detect when all checks are complete
-    if [[ "$line" == *"wget success for https://example.com"* ]]; then
-        echo
-        echo "✓ wsl-vpnkit is running and network connectivity established!"
-        echo "  Keep this window open. Close it to stop wsl-vpnkit."
-        echo
-    fi
-done
+# Run wsl-vpnkit
+wsl.exe -d wsl-vpnkit --cd /app wsl-vpnkit
