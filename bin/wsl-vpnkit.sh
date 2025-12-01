@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Run WSL VPN kit to provide network connectivity to the WSL 2 VM via the
-#   existing Winodws nework connection.
+#   existing Windows network connection.
 #
 # DOWNLOAD
 #   https://github.com/sakai135/wsl-vpnkit/releases/latest
@@ -19,10 +19,19 @@ if [ -e $fpretty ]; then
     print_source
 fi
 
-# get source directory
-source_dir=$(dirname "$src_name")
-cd $source_dir
-echo -n "connecting to powershell... "
-powershell.exe Write-Output "done"
-clear -x
-powershell.exe wsl.exe -d wsl-vpnkit --cd /app wsl-vpnkit
+echo "Starting wsl-vpnkit..."
+echo "This window must remain open for WSL network connectivity."
+echo
+
+# Run wsl-vpnkit and capture output to detect when it's ready
+wsl.exe -d wsl-vpnkit --cd /app wsl-vpnkit 2>&1 | while IFS= read -r line; do
+    echo "$line"
+    
+    # Detect when all checks are complete
+    if [[ "$line" == *"wget success for https://example.com"* ]]; then
+        echo
+        echo "✓ wsl-vpnkit is running and network connectivity established!"
+        echo "  Keep this window open. Close it to stop wsl-vpnkit."
+        echo
+    fi
+done
