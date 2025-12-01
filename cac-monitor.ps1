@@ -3,7 +3,7 @@
 
 Write-Host "CAC Monitor - Starting..." -ForegroundColor Cyan
 
-# Define PC/SC (Smart Card) API - Simplified version
+# Define PC/SC (Smart Card) API and Idle Time Tracking
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
@@ -35,6 +35,16 @@ public class PCSC {
     public const int SCARD_LEAVE_CARD = 0;
     public const int SCARD_STATE_PRESENT = 0x00000020;
     public const int SCARD_W_REMOVED_CARD = unchecked((int)0x80100069);
+}
+
+public struct LASTINPUTINFO {
+    public uint cbSize;
+    public uint dwTime;
+}
+
+public class IdleTime {
+    [DllImport("user32.dll")]
+    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 }
 "@
 
@@ -84,6 +94,86 @@ function Get-ReaderName {
     }
 }
 
+function Get-IdleTime {
+    $lastInput = New-Object LASTINPUTINFO
+    $lastInput.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($lastInput)
+
+    if ([IdleTime]::GetLastInputInfo([ref]$lastInput)) {
+        $idleMilliseconds = ([Environment]::TickCount - $lastInput.dwTime)
+        return [TimeSpan]::FromMilliseconds($idleMilliseconds)
+    }
+
+    return [TimeSpan]::Zero
+}
+
+function Show-OutlookCloseDialog {
+    param(
+        [string]$Reason,
+        [int]$TimeoutSeconds = 10
+    )
+
+    Add-Type -AssemblyName System.Windows.Forms
+
+    $form = New-Object System.Windows.Forms.Form
+    $form.TopMost = $true
+    $form.StartPosition = 'CenterScreen'
+    $form.Size = New-Object System.Drawing.Size(400, 230)
+    $form.Text = 'CAC Card Removed'
+    $form.FormBorderStyle = 'FixedDialog'
+    $form.MaximizeBox = $false
+    $form.MinimizeBox = $false
+
+    $label = New-Object System.Windows.Forms.Label
+    $label.Location = New-Object System.Drawing.Point(20, 20)
+    $label.Size = New-Object System.Drawing.Size(360, 110)
+    $label.AutoSize = $false
+    $form.Controls.Add($label)
+
+    $yesButton = New-Object System.Windows.Forms.Button
+    $yesButton.Location = New-Object System.Drawing.Point(80, 140)
+    $yesButton.Size = New-Object System.Drawing.Size(100, 35)
+    $yesButton.Text = '&Yes'
+    $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
+    $form.Controls.Add($yesButton)
+    $form.AcceptButton = $yesButton
+
+    $noButton = New-Object System.Windows.Forms.Button
+    $noButton.Location = New-Object System.Drawing.Point(220, 140)
+    $noButton.Size = New-Object System.Drawing.Size(100, 35)
+    $noButton.Text = '&No'
+    $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
+    $form.Controls.Add($noButton)
+    $form.CancelButton = $noButton
+
+    # Countdown timer that updates every second
+    $script:countdown = $TimeoutSeconds
+    $baseText = "$Reason`n`nDo you want to close Outlook? (Press Y or N)`n`nClosing in"
+
+    $countdownTimer = New-Object System.Windows.Forms.Timer
+    $countdownTimer.Interval = 1000  # 1 second
+    $countdownTimer.Add_Tick({
+        $script:countdown--
+        if ($script:countdown -gt 0) {
+            $label.Text = "$baseText $($script:countdown) seconds..."
+        } else {
+            $countdownTimer.Stop()
+            $form.DialogResult = [System.Windows.Forms.DialogResult]::None
+            $form.Close()
+        }
+    })
+    $countdownTimer.Start()
+
+    # Update initial label with countdown
+    $label.Text = "$baseText $($script:countdown) seconds..."
+
+    $result = $form.ShowDialog()
+    $countdownTimer.Stop()
+    $countdownTimer.Dispose()
+    $form.Dispose()
+
+    return $result
+}
+
 # Establish context
 [IntPtr]$context = [IntPtr]::Zero
 $result = [PCSC]::SCardEstablishContext([PCSC]::SCARD_SCOPE_USER, [IntPtr]::Zero, [IntPtr]::Zero, [ref]$context)
@@ -123,76 +213,25 @@ try {
         Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     }
 
+    # Configuration
+    $idleThresholdMinutes = 120  # For testing: 20 minutes (normally: 2 hours = 120 minutes)
+    $idleThresholdHours = $idleThresholdMinutes / 60
+    $cardPresentPollMs = 500
+    $cardRemovedPollMs = 5000  # 10x slower when card removed
+
     # Poll for card removal
     while ($true) {
-        Start-Sleep -Milliseconds 500
+        Start-Sleep -Milliseconds $cardPresentPollMs
 
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
             Write-Host "*** CARD REMOVED  ***" -ForegroundColor Red -BackgroundColor Yellow
             [Console]::ResetColor()
 
-            # Show popup with timeout
-            Add-Type -AssemblyName System.Windows.Forms
+            # Show popup for immediate response
+            $result = Show-OutlookCloseDialog -Reason "CAC card removed!" -TimeoutSeconds 10
 
-            $form = New-Object System.Windows.Forms.Form
-            $form.TopMost = $true
-            $form.StartPosition = 'CenterScreen'
-            $form.Size = New-Object System.Drawing.Size(400, 230)
-            $form.Text = 'CAC Card Removed'
-            $form.FormBorderStyle = 'FixedDialog'
-            $form.MaximizeBox = $false
-            $form.MinimizeBox = $false
-
-            $label = New-Object System.Windows.Forms.Label
-            $label.Location = New-Object System.Drawing.Point(20, 20)
-            $label.Size = New-Object System.Drawing.Size(360, 110)
-            $label.AutoSize = $false
-            $form.Controls.Add($label)
-
-            $yesButton = New-Object System.Windows.Forms.Button
-            $yesButton.Location = New-Object System.Drawing.Point(80, 140)
-            $yesButton.Size = New-Object System.Drawing.Size(100, 35)
-            $yesButton.Text = '&Yes'
-            $yesButton.DialogResult = [System.Windows.Forms.DialogResult]::Yes
-            $form.Controls.Add($yesButton)
-            $form.AcceptButton = $yesButton
-
-            $noButton = New-Object System.Windows.Forms.Button
-            $noButton.Location = New-Object System.Drawing.Point(220, 140)
-            $noButton.Size = New-Object System.Drawing.Size(100, 35)
-            $noButton.Text = '&No'
-            $noButton.DialogResult = [System.Windows.Forms.DialogResult]::No
-            $form.Controls.Add($noButton)
-            $form.CancelButton = $noButton
-
-            # Countdown timer that updates every second
-            $countdown = 10
-            $baseText = "CAC card removed!`n`nDo you want to close Outlook? (Press Y or N)`n`nClosing in"
-
-            $countdownTimer = New-Object System.Windows.Forms.Timer
-            $countdownTimer.Interval = 1000  # 1 second
-            $countdownTimer.Add_Tick({
-                $script:countdown--
-                if ($script:countdown -gt 0) {
-                    $label.Text = "$baseText $($script:countdown) seconds..."
-                } else {
-                    $countdownTimer.Stop()
-                    $form.DialogResult = [System.Windows.Forms.DialogResult]::None
-                    $form.Close()
-                }
-            })
-            $countdownTimer.Start()
-
-            # Update initial label with countdown
-            $label.Text = "$baseText $countdown seconds..."
-
-            $result = $form.ShowDialog()
-            $countdownTimer.Stop()
-            $countdownTimer.Dispose()
-            $form.Dispose()
-
-            # Handle response
+            # Handle immediate response
             if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
                 Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
 
@@ -214,11 +253,78 @@ try {
                 Write-Host "Timeout - no action taken." -ForegroundColor Gray
             }
 
-            # Wait for card to be reinserted before continuing monitoring
+            # Wait for card to be reinserted, checking idle time periodically
             Write-Host "Waiting for card to be reinserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
+            Write-Host "Auto-close Outlook after $idleThresholdMinutes minutes of idle time" -ForegroundColor DarkGray
+
+            $cardRemovalTime = Get-Date
+            $idleWarningShown = $false
+            $statusUpdateInterval = [math]::Max(5, [math]::Floor($idleThresholdMinutes / 4))  # Update 4 times during countdown (min 5 minutes)
+            $lastStatusUpdate = Get-Date
+
             while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-                Start-Sleep -Milliseconds 500
+                Start-Sleep -Milliseconds $cardRemovedPollMs
+
+                # Check idle time
+                $idleTime = Get-IdleTime
+                $timeSinceRemoval = (Get-Date) - $cardRemovalTime
+                $timeSinceLastUpdate = ((Get-Date) - $lastStatusUpdate).TotalMinutes
+
+                # Check if we've exceeded the idle threshold
+                if ($idleTime.TotalMinutes -ge $idleThresholdMinutes) {
+                    Write-Host "`n[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle threshold reached: " -ForegroundColor Gray -NoNewline
+                    Write-Host "$([math]::Round($idleTime.TotalMinutes, 1)) minutes idle" -ForegroundColor Yellow
+
+                    # Show auto-close warning
+                    $result = Show-OutlookCloseDialog -Reason "System idle for $idleThresholdMinutes minutes!`nCAC card still removed!" -TimeoutSeconds 10
+
+                    if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                        Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
+
+                        $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
+                        if ($outlookProcess) {
+                            Write-Host "Closing Outlook..." -ForegroundColor Yellow
+                            Stop-Process -Name "OUTLOOK" -Force
+                            Write-Host "Outlook closed." -ForegroundColor Green
+                        } else {
+                            Write-Host "Outlook is not running." -ForegroundColor Gray
+                        }
+
+                        Write-Host "Exiting monitor." -ForegroundColor Cyan
+                        return
+                    } elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
+                        Write-Host "User clicked No - resetting idle timer." -ForegroundColor Gray
+                        # Reset the removal time to give another idle period
+                        $cardRemovalTime = Get-Date
+                        $lastStatusUpdate = Get-Date
+                    } else {
+                        # Timeout - auto-close and exit
+                        Write-Host "Timeout - auto-closing Outlook and exiting..." -ForegroundColor Yellow
+
+                        $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
+                        if ($outlookProcess) {
+                            Write-Host "Closing Outlook..." -ForegroundColor Yellow
+                            Stop-Process -Name "OUTLOOK" -Force
+                            Write-Host "Outlook closed." -ForegroundColor Green
+                        } else {
+                            Write-Host "Outlook is not running." -ForegroundColor Gray
+                        }
+
+                        Write-Host "Exiting monitor." -ForegroundColor Cyan
+                        return
+                    }
+                }
+
+                # Show periodic status update
+                if ($timeSinceLastUpdate -ge $statusUpdateInterval) {
+                    $remainingMinutes = [math]::Max(0, $idleThresholdMinutes - $idleTime.TotalMinutes)
+                    if ($remainingMinutes -gt 0) {
+                        Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle: $([math]::Round($idleTime.TotalMinutes, 1)) min | Auto-close in: $([math]::Round($remainingMinutes, 1)) min" -ForegroundColor DarkGray
+                        $lastStatusUpdate = Get-Date
+                    }
+                }
             }
+
             Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
             Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
             [Console]::ResetColor()
