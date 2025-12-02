@@ -3,7 +3,32 @@
 
 Write-Host "CAC Monitor - Starting..." -ForegroundColor Cyan
 
+# --- Policy & Auditing Configuration ---
+$EnableEventLog = $true
+$EventLogName = 'Application'
+$EventSource  = 'CACMonitor'
+$AllowForceKill = $false  # Only allow force-kill if explicitly enabled
+
+function Write-CacEvent {
+    param(
+        [int]$Id,
+        [string]$Message,
+        [ValidateSet('Information','Warning','Error')]
+        [string]$Type = 'Information'
+    )
+    try {
+        if ($EnableEventLog) {
+            if (-not ([System.Diagnostics.EventLog]::SourceExists($EventSource))) {
+                # Creating a source requires admin; if not available, skip without failing
+                try { New-EventLog -LogName $EventLogName -Source $EventSource -ErrorAction Stop } catch {}
+            }
+            Write-EventLog -LogName $EventLogName -Source $EventSource -EventId $Id -EntryType $Type -Message $Message -ErrorAction SilentlyContinue
+        }
+    } catch {}
+}
+
 # Define PC/SC (Smart Card) API and Idle Time Tracking
+try {
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
@@ -47,28 +72,49 @@ public class IdleTime {
     public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
 }
 "@
+} catch {
+    Write-Host "Failed to load interop types: $($_.Exception.Message)" -ForegroundColor Red
+    Write-CacEvent -Id 9001 -Message ("Interop Add-Type failed: " + $_.Exception.Message) -Type Error
+    throw
+}
 
-function Get-ReaderName {
-    param($Context)
+function Get-ReaderNames {
+    param(
+        $Context,
+        [string[]]$ApprovedVendors = @('HID','Identiv','Gemalto','Thales')
+    )
 
     [int]$length = 0
     $result = [PCSC]::SCardListReaders($Context, $null, [IntPtr]::Zero, [ref]$length)
     if ($result -ne 0 -or $length -le 2) { return $null }
 
-    # Allocate buffer
-    $buffer = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($length * 2)  # *2 for Unicode
+    # Allocate buffer and read multi-string list (names separated by nulls)
+    # pcchReaders returns character count for Unicode; allocate bytes = chars * 2
+    $buffer = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($length * 2)
     try {
         $result = [PCSC]::SCardListReaders($Context, $null, $buffer, [ref]$length)
         if ($result -ne 0) { return $null }
 
-        # Read as Unicode string
-        $text = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($buffer)
+        # Convert pointer to Unicode string using character count
+        $raw = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($buffer, $length)
+        $names = $raw -split "`0" | Where-Object { $_.Trim().Length -gt 0 }
+        if (-not $names -or $names.Count -eq 0) { return $null }
 
-        return $text
+        # Return vendor-preferred ordering
+        $preferred = @()
+        foreach ($n in $names) {
+            if ($ApprovedVendors | Where-Object { $n.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -ge 0 }) {
+                $preferred += $n
+            }
+        }
+        $others = $names | Where-Object { $preferred -notcontains $_ }
+        return ($preferred + $others)
     } finally {
         [System.Runtime.InteropServices.Marshal]::FreeHGlobal($buffer)
     }
-}function Test-CardPresent {
+}
+
+function Test-CardPresent {
     param($Context, $ReaderName)
 
     [IntPtr]$hCard = [IntPtr]::Zero
@@ -112,7 +158,12 @@ function Show-OutlookCloseDialog {
         [int]$TimeoutSeconds = 10
     )
 
-    Add-Type -AssemblyName System.Windows.Forms
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    } catch {
+        Write-CacEvent -Id 9002 -Message ("Failed to load Windows.Forms: " + $_.Exception.Message) -Type Error
+        throw
+    }
 
     $form = New-Object System.Windows.Forms.Form
     $form.TopMost = $true
@@ -174,6 +225,18 @@ function Show-OutlookCloseDialog {
     return $result
 }
 
+# Ensure STA for Windows Forms dialogs
+if ([Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
+    Write-Host "Restarting script in STA mode for dialogs..." -ForegroundColor Yellow
+    Write-CacEvent -Id 9003 -Message "Restarting in STA due to MTA apartment state" -Type Warning
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = (Get-Process -Id $PID).Path
+    $psi.Arguments = "-STA -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    $psi.UseShellExecute = $false
+    [System.Diagnostics.Process]::Start($psi) | Out-Null
+    exit
+}
+
 # Establish context
 [IntPtr]$context = [IntPtr]::Zero
 $result = [PCSC]::SCardEstablishContext([PCSC]::SCARD_SCOPE_USER, [IntPtr]::Zero, [IntPtr]::Zero, [ref]$context)
@@ -183,19 +246,26 @@ if ($result -ne 0) {
 }
 
 try {
-    # Get reader name
-    $reader = Get-ReaderName -Context $context
-    if (-not $reader) {
+    # Get reader names and probe for an active reader
+    $readers = Get-ReaderNames -Context $context
+    if (-not $readers) {
         Write-Host "Error: No card reader found!" -ForegroundColor Red
         exit 1
     }
 
-    Write-Host "Found reader: $reader" -ForegroundColor Gray
+    $reader = $null
+    foreach ($r in $readers) {
+        if (Test-CardPresent -Context $context -ReaderName $r) { $reader = $r; break }
+    }
+    if (-not $reader) { $reader = $readers[0] }
+
+    Write-Host "Using reader: $reader" -ForegroundColor Gray
 
     # Wait for card to be present
     if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
         Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD REMOVED  ***" -ForegroundColor Red -BackgroundColor Yellow
+        Write-CacEvent -Id 1001 -Message "Initial state: CARD REMOVED" -Type Information
         [Console]::ResetColor()
         Write-Host "Waiting for card to be inserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
 
@@ -204,11 +274,13 @@ try {
         }
         Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
+        Write-CacEvent -Id 1002 -Message "State change: CARD INSERTED" -Type Information
         [Console]::ResetColor()
         Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     } else {
         Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
+        Write-CacEvent -Id 1003 -Message "Initial state: CARD INSERTED" -Type Information
         [Console]::ResetColor()
         Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     }
@@ -226,6 +298,7 @@ try {
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
             Write-Host "*** CARD REMOVED  ***" -ForegroundColor Red -BackgroundColor Yellow
+            Write-CacEvent -Id 1004 -Message "State change: CARD REMOVED" -Type Warning
             [Console]::ResetColor()
 
             # Show popup for immediate response
@@ -234,14 +307,37 @@ try {
             # Handle immediate response
             if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
                 Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
+                Write-CacEvent -Id 2001 -Message "User confirmed Outlook close (card removed)" -Type Information
 
                 $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
                 if ($outlookProcess) {
-                    Write-Host "Closing Outlook..." -ForegroundColor Yellow
-                    Stop-Process -Name "OUTLOOK" -Force
-                    Write-Host "Outlook closed." -ForegroundColor Green
+                    Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
+                    $closed = $false
+                    try {
+                        $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
+                        if ($olApp) {
+                            $olApp.Quit()
+                            Start-Sleep -Seconds 2
+                            $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
+                        }
+                    } catch {}
+                    if (-not $closed) {
+                        if ($AllowForceKill) {
+                            Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
+                            Write-CacEvent -Id 2003 -Message "Force-closing Outlook after graceful attempt failed" -Type Warning
+                            Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
+                            Write-Host "Outlook closed (force)." -ForegroundColor Green
+                        } else {
+                            Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
+                            Write-CacEvent -Id 2004 -Message "Graceful close failed; force-kill disallowed by policy" -Type Warning
+                        }
+                    } else {
+                        Write-Host "Outlook closed (graceful)." -ForegroundColor Green
+                        Write-CacEvent -Id 2002 -Message "Outlook closed gracefully" -Type Information
+                    }
                 } else {
                     Write-Host "Outlook is not running." -ForegroundColor Gray
+                    Write-CacEvent -Id 2005 -Message "Outlook not running at user prompt" -Type Information
                 }
 
                 # Exit after closing Outlook
@@ -249,8 +345,10 @@ try {
                 break
             } elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
                 Write-Host "User clicked No - continuing monitoring." -ForegroundColor Gray
+                Write-CacEvent -Id 2006 -Message "User declined Outlook close" -Type Information
             } else {
                 Write-Host "Timeout - no action taken." -ForegroundColor Gray
+                Write-CacEvent -Id 2007 -Message "Prompt timeout; no action" -Type Information
             }
 
             # Wait for card to be reinserted, checking idle time periodically
@@ -280,34 +378,81 @@ try {
 
                     if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
                         Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
+                        Write-CacEvent -Id 2101 -Message "User confirmed Outlook close (idle threshold)" -Type Information
 
                         $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
                         if ($outlookProcess) {
-                            Write-Host "Closing Outlook..." -ForegroundColor Yellow
-                            Stop-Process -Name "OUTLOOK" -Force
-                            Write-Host "Outlook closed." -ForegroundColor Green
+                            Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
+                            $closed = $false
+                            try {
+                                $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
+                                if ($olApp) {
+                                    $olApp.Quit()
+                                    Start-Sleep -Seconds 2
+                                    $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
+                                }
+                            } catch {}
+                            if (-not $closed) {
+                                if ($AllowForceKill) {
+                                    Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
+                                    Write-CacEvent -Id 2103 -Message "Force-closing Outlook after graceful attempt failed (idle)" -Type Warning
+                                    Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
+                                    Write-Host "Outlook closed (force)." -ForegroundColor Green
+                                } else {
+                                    Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
+                                    Write-CacEvent -Id 2104 -Message "Graceful close failed; force-kill disallowed by policy (idle)" -Type Warning
+                                }
+                            } else {
+                                Write-Host "Outlook closed (graceful)." -ForegroundColor Green
+                                Write-CacEvent -Id 2102 -Message "Outlook closed gracefully (idle)" -Type Information
+                            }
                         } else {
                             Write-Host "Outlook is not running." -ForegroundColor Gray
+                            Write-CacEvent -Id 2105 -Message "Outlook not running at idle prompt" -Type Information
                         }
 
                         Write-Host "Exiting monitor." -ForegroundColor Cyan
                         return
                     } elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
                         Write-Host "User clicked No - resetting idle timer." -ForegroundColor Gray
+                        Write-CacEvent -Id 2106 -Message "User declined Outlook close at idle threshold; reset timer" -Type Information
                         # Reset the removal time to give another idle period
                         $cardRemovalTime = Get-Date
                         $lastStatusUpdate = Get-Date
                     } else {
                         # Timeout - auto-close and exit
                         Write-Host "Timeout - auto-closing Outlook and exiting..." -ForegroundColor Yellow
+                        Write-CacEvent -Id 2107 -Message "Idle prompt timeout; auto-close policy" -Type Warning
 
                         $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
                         if ($outlookProcess) {
-                            Write-Host "Closing Outlook..." -ForegroundColor Yellow
-                            Stop-Process -Name "OUTLOOK" -Force
-                            Write-Host "Outlook closed." -ForegroundColor Green
+                            Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
+                            $closed = $false
+                            try {
+                                $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
+                                if ($olApp) {
+                                    $olApp.Quit()
+                                    Start-Sleep -Seconds 2
+                                    $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
+                                }
+                            } catch {}
+                            if (-not $closed) {
+                                if ($AllowForceKill) {
+                                    Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
+                                    Write-CacEvent -Id 2108 -Message "Force-closing Outlook after graceful attempt failed (auto-close)" -Type Warning
+                                    Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
+                                    Write-Host "Outlook closed (force)." -ForegroundColor Green
+                                } else {
+                                    Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
+                                    Write-CacEvent -Id 2109 -Message "Graceful close failed; force-kill disallowed by policy (auto-close)" -Type Warning
+                                }
+                            } else {
+                                Write-Host "Outlook closed (graceful)." -ForegroundColor Green
+                                Write-CacEvent -Id 2110 -Message "Outlook closed gracefully (auto-close)" -Type Information
+                            }
                         } else {
                             Write-Host "Outlook is not running." -ForegroundColor Gray
+                            Write-CacEvent -Id 2111 -Message "Outlook not running at auto-close" -Type Information
                         }
 
                         Write-Host "Exiting monitor." -ForegroundColor Cyan
@@ -327,6 +472,7 @@ try {
 
             Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
             Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
+            Write-CacEvent -Id 1005 -Message "State change: CARD INSERTED (after removal)" -Type Information
             [Console]::ResetColor()
             Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
 
