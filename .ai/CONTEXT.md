@@ -86,6 +86,28 @@ A personal collection of PowerShell utility scripts for productivity and system 
 - Bash equivalents in `bin/` provide WSL/Linux compatibility
 - `make_links.ps1` / `make_links.sh` set up symlinks for easy access
 
+### Fortran Line Breaking (`break-fortran-lines.ps1`)
+
+**Purpose:** Wrap Fortran 77 fixed-form lines to a maximum column (default 72) with proper continuation.
+
+**Key decisions:**
+- **Prioritized break points:** Commas > spaces > operators (`+`, `-`, `*`, `/`, `)`, `]`)
+- **No commas at line start:** Lines should end with commas; continuation lines should not start with commas
+- **Parenthesis protection:** Avoids breaking inside parentheses (e.g., `rb(mr)`, `r1(mz,mp)`)
+- **Smart fallback:** When no ideal break points exist, finds word boundaries (alphanumeric/non-alphanumeric transitions)
+- **Continuation character:** Default `>` in column 6
+- **Smart indentation:** Continuation lines indent baseIndent + 3 spaces
+- **Inline comment detection:** Lines with inline comments (`!`) are not broken
+
+**Fixed-form rules applied:**
+- Columns 1-5: label or blanks
+- Column 6: continuation character (non-blank indicates continuation)
+- Columns 7-72: statement text
+
+**Known issues:**
+- Script works on isolated lines but may fail on full files in certain contexts (debugging ongoing)
+- VS Code task configuration requires special handling (see INSTRUCTIONS.md)
+
 ### License
 
 MIT License (Copyright 2020 Jon Lighthall)
@@ -101,6 +123,13 @@ MIT License (Copyright 2020 Jon Lighthall)
 - Changed from time-based intervals to progress-based thresholds (25%, 50%, 75%)
 - Moved configuration variables before initial state check so `$idleThresholdMinutes` is defined
 - Removed blank line before "Idle threshold reached" message
+
+### 2025-01 — Fortran Line Breaking Enhancements
+- Enhanced `Find-SafeBreakIndex` with parenthesis depth tracking
+- Added prioritized break point logic: commas > spaces > operators
+- Lines now end with commas; continuation lines don't start with commas
+- Added word boundary fallback for lines with no ideal break points
+- Added verbose output for debugging file operations
 
 ---
 

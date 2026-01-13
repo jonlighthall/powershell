@@ -168,3 +168,35 @@ Some AI tools have read-only access. If you receive substantial context but cann
 Two build tasks are defined for Fortran formatting:
 - `Break and Normalize Fortran (Global)` — Full formatting pass
 - `Break Fortran Lines Only (Global)` — Line-breaking only
+
+**Known task configuration issues:**
+
+1. **WSL interference:** If VS Code's default terminal is set to WSL, tasks may fail with:
+   ```
+   WSL ERROR: execvpe(pwsh.exe) failed: No such file or directory
+   ```
+   **Fix:** Use `"type": "process"` instead of `"type": "shell"` in tasks.json to bypass shell interpretation.
+
+2. **Paths with spaces:** File paths containing spaces (e.g., OneDrive/SharePoint paths like `US Navy-flankspeed`) require proper quoting in task arguments.
+
+3. **File caching:** VS Code keeps files in memory. After external script modifications:
+   - Use **Ctrl+Shift+P → "File: Revert File"** to reload from disk
+   - Or close and reopen the file
+   - Script writes to temp file first, then moves to destination for atomicity
+
+**Recommended task configuration:**
+```json
+{
+    "label": "Break and Normalize Fortran",
+    "type": "process",
+    "command": "pwsh.exe",
+    "args": [
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}/break-and-normalize.ps1",
+        "${file}"
+    ],
+    "options": {
+        "cwd": "${workspaceFolder}"
+    }
+}
+```
