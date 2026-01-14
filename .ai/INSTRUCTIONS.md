@@ -19,6 +19,16 @@
 
 ## Context Maintenance (Standing Order)
 
+### Why these files exist
+
+The `.ai/` folder exists **primarily for AI agent utility**—to help future AI sessions onboard quickly without re-asking questions the user has already answered. This is not general documentation; it's working memory for AI agents.
+
+**Implications:**
+- Write for an AI audience (your future self, essentially)
+- Optimize for fast comprehension at the start of a new session
+- Include decisions and their rationale, not just outcomes
+- Don't worry about making it "pretty" for humans—clarity and completeness matter more
+
 When the user provides substantial clarifying information, **integrate it into the appropriate `.ai/` file without being asked** (see table below).
 
 ### Where to put new information:

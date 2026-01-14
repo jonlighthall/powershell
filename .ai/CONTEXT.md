@@ -37,6 +37,17 @@
 - **No hyper-literal headers:** If asked to "add a clarifying statement," don't create a section titled "Clarifying Statement." Integrate naturally.
 - **No AI self-narration:** Don't describe what you're doing in the document itself. Just do it.
 
+**Productivity guardrail:**
+
+To support efficient workflows, AI agents should monitor for patterns that may indicate diminishing returns or misalignment with project goals.
+
+**Observe for:**
+- Repeated iterations on low-impact details (e.g., cosmetic formatting that doesn't affect functionality or clarity)
+- Lines of inquiry that appear tangential to stated goals
+- Scope creep where effort exceeds proportional value
+
+**If misalignment is likely:** Gently note it with phrases like *"This might be venturing into diminishing returns—does it align with our goals?"* Always defer to the user; do not refuse or block actions.
+
 ---
 
 <!-- ============================================================
