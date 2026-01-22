@@ -158,6 +158,23 @@ function Get-IdleTime {
     return [TimeSpan]::Zero
 }
 
+function Show-OutlookClosedNotification {
+    param(
+        [string]$Message
+    )
+
+    # Simple MessageBox - no external dependencies, works on all Windows systems
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        [System.Windows.Forms.MessageBox]::Show($Message, "CAC Monitor - Outlook Closed",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+    }
+    catch {
+        Write-CacEvent -Id 9002 -Message ("MessageBox failed: " + $_.Exception.Message) -Type Error
+    }
+}
+
 function Show-OutlookCloseDialog {
     param(
         [string]$Reason,
@@ -171,6 +188,9 @@ function Show-OutlookCloseDialog {
         Write-CacEvent -Id 9002 -Message ("Failed to load Windows.Forms: " + $_.Exception.Message) -Type Error
         throw
     }
+
+    # Enable modern Windows visual styles (otherwise looks like Windows 95)
+    [System.Windows.Forms.Application]::EnableVisualStyles()
 
     $form = New-Object System.Windows.Forms.Form
     $form.TopMost = $true
@@ -271,7 +291,7 @@ try {
     Write-Host "Using reader: $reader" -ForegroundColor Gray
 
     # Configuration
-    $idleThresholdMinutes = 120  # For testing: 20 minutes (normally: 2 hours = 120 minutes)
+    $idleThresholdMinutes = 120  # TESTING: 1.2 minutes (normally: 2 hours = 120 minutes)
     $idleThresholdHours = $idleThresholdMinutes / 60
     $cardPresentPollMs = 500
     $cardRemovedPollMs = 5000  # 10x slower when card removed
@@ -290,6 +310,9 @@ try {
         $statusCheckCount = 0
         # Show 3 progress updates: at 25%, 50%, 75% of threshold
         $progressThresholds = @(0.25, 0.50, 0.75)
+        $peakIdleMinutes = 0  # Track highest idle time reached
+        $wasSignificantlyIdle = $false  # Was idle for at least 25% of threshold
+        $idleInterval = $idleThresholdMinutes * 0.25  # 25% of threshold for activity reset
 
         while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Start-Sleep -Milliseconds 5000
@@ -297,12 +320,28 @@ try {
             # Check idle time during initial wait
             $idleTime = Get-IdleTime
             $idleProgress = $idleTime.TotalMinutes / $idleThresholdMinutes
+            $currentIdleMinutes = $idleTime.TotalMinutes
+
+            # Track peak idle time
+            if ($currentIdleMinutes -gt $peakIdleMinutes) {
+                $peakIdleMinutes = $currentIdleMinutes
+            }
+
+            # Detect when user becomes active after significant idle (25%+ of threshold)
+            if ($wasSignificantlyIdle -and $currentIdleMinutes -lt $idleInterval) {
+                Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Activity detected after $([math]::Round($peakIdleMinutes, 1)) min idle - auto-close timer reset" -ForegroundColor DarkGray
+                # Reset tracking for next idle period
+                $statusCheckCount = 0
+                $peakIdleMinutes = 0
+                $wasSignificantlyIdle = $false
+            }
 
             # Show periodic status update at specific progress points
             if ($statusCheckCount -lt $progressThresholds.Length -and $idleProgress -ge $progressThresholds[$statusCheckCount]) {
                 $remainingMinutes = [math]::Max(0, $idleThresholdMinutes - $idleTime.TotalMinutes)
                 Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle: $([math]::Round($idleTime.TotalMinutes, 1)) min | Auto-close in: $([math]::Round($remainingMinutes, 1)) min" -ForegroundColor DarkGray
                 $statusCheckCount++
+                $wasSignificantlyIdle = $true
             }
 
             # Check if we've exceeded the idle threshold
@@ -402,6 +441,9 @@ try {
                         Write-CacEvent -Id 2111 -Message "Outlook not running at auto-close (initial wait)" -Type Information
                     }
 
+                    # Show notification so user knows what happened
+                    Show-OutlookClosedNotification -Message "Outlook was closed after $idleThresholdMinutes minutes of inactivity.`n`nCAC card was not inserted.`n`nTime: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+
                     Write-Host "Exiting monitor." -ForegroundColor Cyan
                     return
                 }
@@ -491,15 +533,15 @@ try {
             Write-Host "Waiting for card to be reinserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
 
             $cardRemovalTime = Get-Date
-            $idleInterval = [math]::Max(5, [math]::Floor($idleThresholdMinutes / 4))  # Threshold interval (e.g., 30 min for 120 min total)
-            $lastIdleThresholdCrossed = 0  # Track which idle threshold we last reported
+            $idleInterval = $idleThresholdMinutes * 0.25  # 25% of threshold for progress updates
+            $lastIdleThresholdCrossed = 0  # Track which idle threshold we last reported (0, 1, 2, 3 = 25%, 50%, 75%, 100%)
             $peakIdleMinutes = 0  # Track the highest idle time reached
             $wasSignificantlyIdle = $false  # Was idle for at least one interval
 
             # Print initial auto-close timer
             $idleTime = Get-IdleTime
             $remainingMinutes = [math]::Max(0, $idleThresholdMinutes - $idleTime.TotalMinutes)
-            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Auto-close in $([math]::Floor($remainingMinutes)) min..." -ForegroundColor DarkGray
+            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Auto-close in $([math]::Round($remainingMinutes, 1)) min..." -ForegroundColor DarkGray
 
             while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
                 Start-Sleep -Milliseconds $cardRemovedPollMs
@@ -612,25 +654,28 @@ try {
                             Write-CacEvent -Id 2111 -Message "Outlook not running at auto-close" -Type Information
                         }
 
+                        # Show notification so user knows what happened
+                        Show-OutlookClosedNotification -Message "Outlook was closed after $idleThresholdMinutes minutes of inactivity.`n`nCAC card was removed.`n`nTime: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+
                         Write-Host "Exiting monitor." -ForegroundColor Cyan
                         return
                     }
                 }
 
-                # Calculate which idle threshold we're at (30, 60, 90 min for 120 min total)
+                # Calculate which idle threshold we're at (25%, 50%, 75% of total)
                 $currentThreshold = [math]::Floor($currentIdleMinutes / $idleInterval)
 
-                # Print message only when crossing a new threshold (30, 60, 90 min, etc.)
-                if ($currentThreshold -gt $lastIdleThresholdCrossed -and $currentIdleMinutes -lt $idleThresholdMinutes) {
+                # Print message only when crossing a new threshold (25%, 50%, 75%)
+                if ($currentThreshold -gt $lastIdleThresholdCrossed -and $currentThreshold -lt 4 -and $currentIdleMinutes -lt $idleThresholdMinutes) {
                     $remainingMinutes = [math]::Max(0, $idleThresholdMinutes - $currentIdleMinutes)
-                    Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Auto-close in $([math]::Floor($remainingMinutes)) min..." -ForegroundColor DarkGray
+                    Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle: $([math]::Round($currentIdleMinutes, 1)) min | Auto-close in: $([math]::Round($remainingMinutes, 1)) min" -ForegroundColor DarkGray
                     $lastIdleThresholdCrossed = $currentThreshold
                     $wasSignificantlyIdle = $true
                 }
 
-                # Detect when user becomes active after significant idle (30+ min)
+                # Detect when user becomes active after significant idle (25%+ of threshold)
                 if ($wasSignificantlyIdle -and $currentIdleMinutes -lt $idleInterval) {
-                    Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Activity detected after $([math]::Floor($peakIdleMinutes)) min idle - auto-close timer reset" -ForegroundColor DarkGray
+                    Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Activity detected after $([math]::Round($peakIdleMinutes, 1)) min idle - auto-close timer reset" -ForegroundColor DarkGray
                     # Reset tracking for next idle period
                     $lastIdleThresholdCrossed = 0
                     $peakIdleMinutes = 0
