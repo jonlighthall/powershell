@@ -1,10 +1,38 @@
-# CAC Card Reader Monitor - Simple Detection Script
-# Must run in Windows PowerShell to access Smart Card APIs
+<#
+.SYNOPSIS
+    CAC Card Reader Monitor - Monitors smart card insertion/removal and auto-closes Outlook after idle timeout.
+
+.DESCRIPTION
+    This script monitors CAC (Common Access Card) smart card readers and tracks system idle time.
+    When the CAC card is removed and the system has been idle for a configurable period, it will:
+    - Prompt the user to close Outlook (with countdown timer)
+    - Auto-close Outlook if no response (timeout)
+    - Display a notification so the user knows what happened when they return
+
+    Primary use case: Terminate Outlook overnight when computer is locked and CAC removed.
+
+.REQUIREMENTS
+    - Windows PowerShell (not PowerShell Core) for Smart Card API access
+    - PC/SC compatible smart card reader
+    - Runs in STA mode for Windows Forms dialogs (auto-restarts if needed)
+
+.NOTES
+    Author: Jon Lighthall
+    No external module dependencies - uses only built-in Windows APIs.
+#>
+
+# === CONFIGURATION ===
+# Adjust these values to customize behavior
+
+$IdleThresholdMinutes = 120      # Auto-close Outlook after this many minutes idle (default: 2 hours)
+$CardPresentPollMs = 500         # How often to check for card removal when card is present (ms)
+$CardRemovedPollMs = 5000        # How often to check for card insertion when card is removed (ms)
+$DialogTimeoutSeconds = 10       # Seconds before auto-close dialog times out
+$AllowForceKill = $false         # If $true, force-kill Outlook when graceful close fails
+
+# === END CONFIGURATION ===
 
 Write-Host "CAC Monitor - Starting..." -ForegroundColor Cyan
-
-# --- Configuration ---
-$AllowForceKill = $false  # Only allow force-kill if explicitly enabled
 
 # Define PC/SC (Smart Card) API and Idle Time Tracking
 try {
@@ -148,13 +176,53 @@ function Show-OutlookClosedNotification {
             [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
     }
     catch {
+        # Silently ignore - notification is non-critical
+    }
+}
+
+function Close-OutlookGracefully {
+    param(
+        [bool]$AllowForceKill = $false
+    )
+
+    $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
+    if ($outlookProcess) {
+        Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
+        $closed = $false
+        try {
+            $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
+            if ($olApp) {
+                $olApp.Quit()
+                Start-Sleep -Seconds 2
+                $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
+            }
+        }
+        catch {}
+        if (-not $closed) {
+            if ($AllowForceKill) {
+                Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
+                Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
+                Write-Host "Outlook closed (force)." -ForegroundColor Green
+            }
+            else {
+                Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
+            }
+        }
+        else {
+            Write-Host "Outlook closed (graceful)." -ForegroundColor Green
+        }
+        return $true
+    }
+    else {
+        Write-Host "Outlook is not running." -ForegroundColor Gray
+        return $false
     }
 }
 
 function Show-OutlookCloseDialog {
     param(
         [string]$Reason,
-        [int]$TimeoutSeconds = 10
+        [int]$TimeoutSeconds = $script:DialogTimeoutSeconds
     )
 
     try {
@@ -228,6 +296,109 @@ function Show-OutlookCloseDialog {
     return $result
 }
 
+function Wait-ForCardWithIdleMonitoring {
+    param(
+        $Context,
+        $ReaderName,
+        [int]$IdleThresholdMinutes,
+        [int]$PollMs = $script:CardRemovedPollMs,
+        [string]$DialogReason = "CAC card removed!",
+        [bool]$AllowForceKill = $script:AllowForceKill,
+        [bool]$ShowInitialPrompt = $false
+    )
+
+    # Show initial prompt if requested (when card is removed during monitoring)
+    if ($ShowInitialPrompt) {
+        $result = Show-OutlookCloseDialog -Reason $DialogReason -TimeoutSeconds 10
+        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+            Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
+            Close-OutlookGracefully -AllowForceKill $AllowForceKill
+            Write-Host "Exiting monitor." -ForegroundColor Cyan
+            return "exit"
+        }
+        elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
+            Write-Host "User clicked No - continuing monitoring." -ForegroundColor Gray
+        }
+        else {
+            Write-Host "Timeout - no action taken." -ForegroundColor Gray
+        }
+    }
+
+    Write-Host "Waiting for card to be inserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
+    Write-Host "Outlook will auto-close after $IdleThresholdMinutes minutes of idle time" -ForegroundColor DarkGray
+
+    # Idle tracking variables
+    $idleInterval = $IdleThresholdMinutes * 0.25
+    $lastIdleThresholdCrossed = 0
+    $peakIdleMinutes = 0
+    $wasSignificantlyIdle = $false
+
+    # Print initial auto-close timer
+    $idleTime = Get-IdleTime
+    $remainingMinutes = [math]::Max(0, $IdleThresholdMinutes - $idleTime.TotalMinutes)
+    Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Auto-close in $([math]::Round($remainingMinutes, 1)) min..." -ForegroundColor DarkGray
+
+    while (-not (Test-CardPresent -Context $Context -ReaderName $ReaderName)) {
+        Start-Sleep -Milliseconds $PollMs
+
+        $idleTime = Get-IdleTime
+        $currentIdleMinutes = $idleTime.TotalMinutes
+
+        # Track peak idle time
+        if ($currentIdleMinutes -gt $peakIdleMinutes) {
+            $peakIdleMinutes = $currentIdleMinutes
+        }
+
+        # Detect when user becomes active after significant idle
+        if ($wasSignificantlyIdle -and $currentIdleMinutes -lt $idleInterval) {
+            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Activity detected after $([math]::Round($peakIdleMinutes, 1)) min idle - auto-close timer reset" -ForegroundColor DarkGray
+            $lastIdleThresholdCrossed = 0
+            $peakIdleMinutes = 0
+            $wasSignificantlyIdle = $false
+        }
+
+        # Show progress at 25%, 50%, 75% thresholds
+        $currentThreshold = [math]::Floor($currentIdleMinutes / $idleInterval)
+        if ($currentThreshold -gt $lastIdleThresholdCrossed -and $currentThreshold -lt 4 -and $currentIdleMinutes -lt $IdleThresholdMinutes) {
+            $remainingMinutes = [math]::Max(0, $IdleThresholdMinutes - $currentIdleMinutes)
+            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle: $([math]::Round($currentIdleMinutes, 1)) min | Auto-close in: $([math]::Round($remainingMinutes, 1)) min" -ForegroundColor DarkGray
+            $lastIdleThresholdCrossed = $currentThreshold
+            $wasSignificantlyIdle = $true
+        }
+
+        # Check if idle threshold reached
+        if ($idleTime.TotalMinutes -ge $IdleThresholdMinutes) {
+            Write-Host "`n[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle threshold reached: " -ForegroundColor Gray -NoNewline
+            Write-Host "$([math]::Round($idleTime.TotalMinutes, 1)) minutes idle" -ForegroundColor Yellow
+
+            $result = Show-OutlookCloseDialog -Reason "System idle for $IdleThresholdMinutes minutes!`nCAC card not inserted!" -TimeoutSeconds 10
+
+            if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
+                Close-OutlookGracefully -AllowForceKill $AllowForceKill
+                Write-Host "Exiting monitor." -ForegroundColor Cyan
+                return "exit"
+            }
+            elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
+                Write-Host "User clicked No - resetting idle timer." -ForegroundColor Gray
+                $lastIdleThresholdCrossed = 0
+                $peakIdleMinutes = 0
+                $wasSignificantlyIdle = $false
+            }
+            else {
+                # Timeout - auto-close
+                Write-Host "Timeout - auto-closing Outlook and exiting..." -ForegroundColor Yellow
+                Close-OutlookGracefully -AllowForceKill $AllowForceKill
+                Show-OutlookClosedNotification -Message "Outlook was closed after $IdleThresholdMinutes minutes of inactivity.`n`nCAC card was not inserted.`n`nTime: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+                Write-Host "Exiting monitor." -ForegroundColor Cyan
+                return "exit"
+            }
+        }
+    }
+
+    return "card_inserted"
+}
+
 # Ensure STA for Windows Forms dialogs
 if ([Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
     Write-Host "Restarting script in STA mode for dialogs..." -ForegroundColor Yellow
@@ -264,373 +435,45 @@ try {
 
     Write-Host "Using reader: $reader" -ForegroundColor Gray
 
-    # Configuration
-    $idleThresholdMinutes = 120  # TESTING: 1.2 minutes (normally: 2 hours = 120 minutes)
-    $idleThresholdHours = $idleThresholdMinutes / 60
-    $cardPresentPollMs = 500
-    $cardRemovedPollMs = 5000  # 10x slower when card removed
-
-    # Wait for card to be present
+    # Initial state check
     if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
         Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD REMOVED  ***" -ForegroundColor Red -BackgroundColor Yellow
         [Console]::ResetColor()
-        Write-Host "Waiting for card to be inserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
-        Write-Host "Outlook will auto-close after $idleThresholdMinutes minutes of idle time" -ForegroundColor DarkGray
 
-        # Track idle time even during initial wait
-        $initialRemovalTime = Get-Date
-        $statusCheckCount = 0
-        # Show 3 progress updates: at 25%, 50%, 75% of threshold
-        $progressThresholds = @(0.25, 0.50, 0.75)
-        $peakIdleMinutes = 0  # Track highest idle time reached
-        $wasSignificantlyIdle = $false  # Was idle for at least 25% of threshold
-        $idleInterval = $idleThresholdMinutes * 0.25  # 25% of threshold for activity reset
+        $waitResult = Wait-ForCardWithIdleMonitoring -Context $context -ReaderName $reader `
+            -IdleThresholdMinutes $IdleThresholdMinutes
+        if ($waitResult -eq "exit") { return }
 
-        while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-            Start-Sleep -Milliseconds 5000
-
-            # Check idle time during initial wait
-            $idleTime = Get-IdleTime
-            $idleProgress = $idleTime.TotalMinutes / $idleThresholdMinutes
-            $currentIdleMinutes = $idleTime.TotalMinutes
-
-            # Track peak idle time
-            if ($currentIdleMinutes -gt $peakIdleMinutes) {
-                $peakIdleMinutes = $currentIdleMinutes
-            }
-
-            # Detect when user becomes active after significant idle (25%+ of threshold)
-            if ($wasSignificantlyIdle -and $currentIdleMinutes -lt $idleInterval) {
-                Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Activity detected after $([math]::Round($peakIdleMinutes, 1)) min idle - auto-close timer reset" -ForegroundColor DarkGray
-                # Reset tracking for next idle period
-                $statusCheckCount = 0
-                $peakIdleMinutes = 0
-                $wasSignificantlyIdle = $false
-            }
-
-            # Show periodic status update at specific progress points
-            if ($statusCheckCount -lt $progressThresholds.Length -and $idleProgress -ge $progressThresholds[$statusCheckCount]) {
-                $remainingMinutes = [math]::Max(0, $idleThresholdMinutes - $idleTime.TotalMinutes)
-                Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle: $([math]::Round($idleTime.TotalMinutes, 1)) min | Auto-close in: $([math]::Round($remainingMinutes, 1)) min" -ForegroundColor DarkGray
-                $statusCheckCount++
-                $wasSignificantlyIdle = $true
-            }
-
-            # Check if we've exceeded the idle threshold
-            if ($idleTime.TotalMinutes -ge $idleThresholdMinutes) {
-                Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle threshold reached: " -ForegroundColor Gray -NoNewline
-                Write-Host "$([math]::Round($idleTime.TotalMinutes, 1)) minutes idle" -ForegroundColor Yellow
-
-                # Show auto-close warning
-                $result = Show-OutlookCloseDialog -Reason "System idle for $idleThresholdMinutes minutes!`nCAC card not inserted!" -TimeoutSeconds 10
-
-                if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                    Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
-
-                    $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
-                    if ($outlookProcess) {
-                        Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
-                        $closed = $false
-                        try {
-                            $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
-                            if ($olApp) {
-                                $olApp.Quit()
-                                Start-Sleep -Seconds 2
-                                $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
-                            }
-                        }
-                        catch {}
-                        if (-not $closed) {
-                            if ($AllowForceKill) {
-                                Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
-                                Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
-                                Write-Host "Outlook closed (force)." -ForegroundColor Green
-                            }
-                            else {
-                                Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
-                            }
-                        }
-                        else {
-                            Write-Host "Outlook closed (graceful)." -ForegroundColor Green
-                        }
-                    }
-                    else {
-                        Write-Host "Outlook is not running." -ForegroundColor Gray
-                    }
-
-                    Write-Host "Exiting monitor." -ForegroundColor Cyan
-                    return
-                }
-                elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
-                    Write-Host "User clicked No - resetting idle timer." -ForegroundColor Gray
-                    # Reset the removal time to give another idle period
-                    $initialRemovalTime = Get-Date
-                    $statusCheckCount = 0
-                }
-                else {
-                    # Timeout - auto-close and exit
-                    Write-Host "Timeout - auto-closing Outlook and exiting..." -ForegroundColor Yellow
-
-                    $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
-                    if ($outlookProcess) {
-                        Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
-                        $closed = $false
-                        try {
-                            $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
-                            if ($olApp) {
-                                $olApp.Quit()
-                                Start-Sleep -Seconds 2
-                                $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
-                            }
-                        }
-                        catch {}
-                        if (-not $closed) {
-                            if ($AllowForceKill) {
-                                Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
-                                Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
-                                Write-Host "Outlook closed (force)." -ForegroundColor Green
-                            }
-                            else {
-                                Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
-                            }
-                        }
-                        else {
-                            Write-Host "Outlook closed (graceful)." -ForegroundColor Green
-                        }
-                    }
-                    else {
-                        Write-Host "Outlook is not running." -ForegroundColor Gray
-                    }
-
-                    # Show notification so user knows what happened
-                    Show-OutlookClosedNotification -Message "Outlook was closed after $idleThresholdMinutes minutes of inactivity.`n`nCAC card was not inserted.`n`nTime: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-
-                    Write-Host "Exiting monitor." -ForegroundColor Cyan
-                    return
-                }
-            }
-        }
         Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
         [Console]::ResetColor()
-        Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     }
     else {
         Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Initial state: " -ForegroundColor Gray -NoNewline
         Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
         [Console]::ResetColor()
-        Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
     }
 
-    # Poll for card removal
+    Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
+
+    # Main monitoring loop
     while ($true) {
-        Start-Sleep -Milliseconds $cardPresentPollMs
+        Start-Sleep -Milliseconds $CardPresentPollMs
 
         if (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
             Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
             Write-Host "*** CARD REMOVED  ***" -ForegroundColor Red -BackgroundColor Yellow
             [Console]::ResetColor()
 
-            # Show popup for immediate response
-            $result = Show-OutlookCloseDialog -Reason "CAC card removed!" -TimeoutSeconds 10
-
-            # Handle immediate response
-            if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
-
-                $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
-                if ($outlookProcess) {
-                    Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
-                    $closed = $false
-                    try {
-                        $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
-                        if ($olApp) {
-                            $olApp.Quit()
-                            Start-Sleep -Seconds 2
-                            $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
-                        }
-                    }
-                    catch {}
-                    if (-not $closed) {
-                        if ($AllowForceKill) {
-                            Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
-                            Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
-                            Write-Host "Outlook closed (force)." -ForegroundColor Green
-                        }
-                        else {
-                            Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
-                        }
-                    }
-                    else {
-                        Write-Host "Outlook closed (graceful)." -ForegroundColor Green
-                    }
-                }
-                else {
-                    Write-Host "Outlook is not running." -ForegroundColor Gray
-                }
-
-                # Exit after closing Outlook
-                Write-Host "Exiting monitor." -ForegroundColor Cyan
-                break
-            }
-            elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
-                Write-Host "User clicked No - continuing monitoring." -ForegroundColor Gray
-            }
-            else {
-                Write-Host "Timeout - no action taken." -ForegroundColor Gray
-            }
-
-            # Wait for card to be reinserted, checking idle time periodically
-            Write-Host "Waiting for card to be reinserted... (Press Ctrl+C to exit)" -ForegroundColor Yellow
-
-            $cardRemovalTime = Get-Date
-            $idleInterval = $idleThresholdMinutes * 0.25  # 25% of threshold for progress updates
-            $lastIdleThresholdCrossed = 0  # Track which idle threshold we last reported (0, 1, 2, 3 = 25%, 50%, 75%, 100%)
-            $peakIdleMinutes = 0  # Track the highest idle time reached
-            $wasSignificantlyIdle = $false  # Was idle for at least one interval
-
-            # Print initial auto-close timer
-            $idleTime = Get-IdleTime
-            $remainingMinutes = [math]::Max(0, $idleThresholdMinutes - $idleTime.TotalMinutes)
-            Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Auto-close in $([math]::Round($remainingMinutes, 1)) min..." -ForegroundColor DarkGray
-
-            while (-not (Test-CardPresent -Context $context -ReaderName $reader)) {
-                Start-Sleep -Milliseconds $cardRemovedPollMs
-
-                # Check idle time
-                $idleTime = Get-IdleTime
-                $currentIdleMinutes = $idleTime.TotalMinutes
-
-                # Track peak idle time
-                if ($currentIdleMinutes -gt $peakIdleMinutes) {
-                    $peakIdleMinutes = $currentIdleMinutes
-                }
-
-                # Check if we've exceeded the idle threshold
-                if ($idleTime.TotalMinutes -ge $idleThresholdMinutes) {
-                    Write-Host "`n[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle threshold reached: " -ForegroundColor Gray -NoNewline
-                    Write-Host "$([math]::Round($idleTime.TotalMinutes, 1)) minutes idle" -ForegroundColor Yellow
-
-                    # Show auto-close warning
-                    $result = Show-OutlookCloseDialog -Reason "System idle for $idleThresholdMinutes minutes!`nCAC card still removed!" -TimeoutSeconds 10
-
-                    if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                        Write-Host "User clicked Yes - checking for Outlook..." -ForegroundColor Yellow
-
-                        $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
-                        if ($outlookProcess) {
-                            Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
-                            $closed = $false
-                            try {
-                                $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
-                                if ($olApp) {
-                                    $olApp.Quit()
-                                    Start-Sleep -Seconds 2
-                                    $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
-                                }
-                            }
-                            catch {}
-                            if (-not $closed) {
-                                if ($AllowForceKill) {
-                                    Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
-                                    Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
-                                    Write-Host "Outlook closed (force)." -ForegroundColor Green
-                                }
-                                else {
-                                    Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
-                                }
-                            }
-                            else {
-                                Write-Host "Outlook closed (graceful)." -ForegroundColor Green
-                            }
-                        }
-                        else {
-                            Write-Host "Outlook is not running." -ForegroundColor Gray
-                        }
-
-                        Write-Host "Exiting monitor." -ForegroundColor Cyan
-                        return
-                    }
-                    elseif ($result -eq [System.Windows.Forms.DialogResult]::No) {
-                        Write-Host "User clicked No - resetting idle timer." -ForegroundColor Gray
-                        # Reset the tracking for next idle period
-                        $cardRemovalTime = Get-Date
-                        $lastIdleThresholdCrossed = 0
-                        $peakIdleMinutes = 0
-                        $wasSignificantlyIdle = $false
-                    }
-                    else {
-                        # Timeout - auto-close and exit
-                        Write-Host "Timeout - auto-closing Outlook and exiting..." -ForegroundColor Yellow
-
-                        $outlookProcess = Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue
-                        if ($outlookProcess) {
-                            Write-Host "Closing Outlook (graceful)..." -ForegroundColor Yellow
-                            $closed = $false
-                            try {
-                                $olApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
-                                if ($olApp) {
-                                    $olApp.Quit()
-                                    Start-Sleep -Seconds 2
-                                    $closed = -not (Get-Process -Name "OUTLOOK" -ErrorAction SilentlyContinue)
-                                }
-                            }
-                            catch {}
-                            if (-not $closed) {
-                                if ($AllowForceKill) {
-                                    Write-Host "Graceful close failed; force-closing Outlook..." -ForegroundColor Yellow
-                                    Stop-Process -Name "OUTLOOK" -Force -ErrorAction SilentlyContinue
-                                    Write-Host "Outlook closed (force)." -ForegroundColor Green
-                                }
-                                else {
-                                    Write-Host "Graceful close did not complete; leaving Outlook running (policy disallows force-kill)." -ForegroundColor DarkYellow
-                                }
-                            }
-                            else {
-                                Write-Host "Outlook closed (graceful)." -ForegroundColor Green
-                            }
-                        }
-                        else {
-                            Write-Host "Outlook is not running." -ForegroundColor Gray
-                        }
-
-                        # Show notification so user knows what happened
-                        Show-OutlookClosedNotification -Message "Outlook was closed after $idleThresholdMinutes minutes of inactivity.`n`nCAC card was removed.`n`nTime: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-
-                        Write-Host "Exiting monitor." -ForegroundColor Cyan
-                        return
-                    }
-                }
-
-                # Calculate which idle threshold we're at (25%, 50%, 75% of total)
-                $currentThreshold = [math]::Floor($currentIdleMinutes / $idleInterval)
-
-                # Print message only when crossing a new threshold (25%, 50%, 75%)
-                if ($currentThreshold -gt $lastIdleThresholdCrossed -and $currentThreshold -lt 4 -and $currentIdleMinutes -lt $idleThresholdMinutes) {
-                    $remainingMinutes = [math]::Max(0, $idleThresholdMinutes - $currentIdleMinutes)
-                    Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Idle: $([math]::Round($currentIdleMinutes, 1)) min | Auto-close in: $([math]::Round($remainingMinutes, 1)) min" -ForegroundColor DarkGray
-                    $lastIdleThresholdCrossed = $currentThreshold
-                    $wasSignificantlyIdle = $true
-                }
-
-                # Detect when user becomes active after significant idle (25%+ of threshold)
-                if ($wasSignificantlyIdle -and $currentIdleMinutes -lt $idleInterval) {
-                    Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Activity detected after $([math]::Round($peakIdleMinutes, 1)) min idle - auto-close timer reset" -ForegroundColor DarkGray
-                    # Reset tracking for next idle period
-                    $lastIdleThresholdCrossed = 0
-                    $peakIdleMinutes = 0
-                    $wasSignificantlyIdle = $false
-                }
-            }
+            $waitResult = Wait-ForCardWithIdleMonitoring -Context $context -ReaderName $reader `
+                -IdleThresholdMinutes $IdleThresholdMinutes -ShowInitialPrompt $true
+            if ($waitResult -eq "exit") { break }
 
             Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] State change:  " -ForegroundColor Gray -NoNewline
             Write-Host "*** CARD INSERTED ***" -ForegroundColor Green -BackgroundColor Yellow
             [Console]::ResetColor()
             Write-Host "Monitoring for card removal... (Press Ctrl+C to exit)" -ForegroundColor Green
-
-            # Give a brief moment for the card to settle, then check immediately
-            Start-Sleep -Milliseconds 100
         }
     }
 }
