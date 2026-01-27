@@ -389,7 +389,7 @@ function Wait-ForCardWithIdleMonitoring {
                 # Timeout - auto-close
                 Write-Host "Timeout - auto-closing Outlook and exiting..." -ForegroundColor Yellow
                 Close-OutlookGracefully -AllowForceKill $AllowForceKill
-                Show-OutlookClosedNotification -Message "Outlook was closed after $IdleThresholdMinutes minutes of inactivity.`n`nCAC card was not inserted.`n`nTime: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+                Show-OutlookClosedNotification -Message "Outlook closed at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') after $IdleThresholdMinutes minutes of inactivity with CAC removed."
                 Write-Host "Exiting monitor." -ForegroundColor Cyan
                 return "exit"
             }
